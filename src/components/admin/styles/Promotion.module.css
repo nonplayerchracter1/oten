@@ -1,0 +1,730 @@
+/* ================================
+  GLOBAL CSS VARIABLES (Matching AdminDashboard)
+=============================== */
+:root {
+  --bg-main: #b1b1b1;
+  --bg-secondary: #bbbbbb;
+  --text-primary: #020202;
+  --text-secondary: #ffffff;
+  --bg-buttons: #1060af;
+  --bg-buttons_active: #529ae1;
+  --bg-cards: #526f8c;
+  --hover-glow: linear-gradient(90deg, #fbbd11 0%, #ffda66 50%, #fbbd11 100%);
+  --hover-row: #81a4cd;
+  --bg-approved: #07e33b;
+  --bg-pending: #eab209;
+  --bg-reject: #ff0404;
+  --accent: #505050;
+  --accent-hover: #8c8c8c;
+  --border: #e5dada;
+}
+
+[data-theme="dark"] {
+  --bg-main: #264462;
+  --bg-secondary: #840032;
+  --text-primary: #ffffff;
+  --text-secondary: #e59500;
+  --accent: #505050;
+  --accent-hover: #8c8c8c;
+  --border: #e5dada;
+}
+
+/* ================================
+  PROMOTION MANAGEMENT LAYOUT
+=============================== */
+.QoPContainer {
+  min-height: 100vh;
+  background: var(--bg-main);
+  padding: 20px;
+}
+
+/* ===== TITLE ===== */
+.QoPTitle {
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 25px 0;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* ===== TOP CONTROLS ===== */
+.QoPTopControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 30px 0;
+  padding: 0 10px;
+}
+
+.QoPTableHeader {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+/* Filter and Search Controls */
+.QoPFilterType,
+.QoPSearchBar {
+  padding: 10px 15px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.QoPFilterType:hover,
+.QoPSearchBar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+}
+
+.QoPFilterType:focus,
+.QoPSearchBar:focus {
+  border-color: var(--bg-buttons);
+  box-shadow: 0 0 0 3px rgba(16, 96, 175, 0.3);
+}
+
+.QoPFilterType {
+  min-width: 160px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23505050'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.QoPSearchBar {
+  width: 280px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23505050'><path d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left 15px center;
+  background-size: 16px;
+  padding-left: 45px;
+}
+
+.QoPViewAllBtn {
+  padding: 10px 20px;
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.QoPViewAllBtn:hover {
+  background: var(--bg-buttons_active);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== SUMMARY CARDS (Matching AdminDashboard) ===== */
+.QoPSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 30px 0;
+}
+
+.QoPSummaryCard {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.QoPSummaryCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(16, 95, 175, 0.4);
+}
+
+.QoPSummaryCard.QoPActive {
+  border: 2px solid var(--bg-buttons);
+  transform: translateY(-6px) scale(1.05);
+}
+
+.QoPSummaryCard h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.QoPSummaryCard p {
+  font-size: 2.5em;
+  font-weight: bold;
+  margin: 0;
+  color: var(--bg-buttons);
+}
+
+/* Card Background Colors */
+.QoPTotal {
+  background: linear-gradient(135deg, rgba(16, 96, 175, 0.9), rgba(82, 154, 225, 0.9));
+}
+
+.QoPEligible {
+  background: linear-gradient(135deg, rgba(7, 227, 59, 0.9), rgba(129, 199, 132, 0.9));
+}
+
+.QoPNotEligible {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.9), rgba(229, 115, 115, 0.9));
+}
+
+/* Active state colors - make text white */
+.QoPSummaryCard.QoPActive h3,
+.QoPSummaryCard.QoPActive p {
+  color: white;
+}
+
+/* ===== TABLE CONTAINER ===== */
+.QoPTableWrapper {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.QoPTableWrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.QoPTableWrapper::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.QoPTableWrapper::-webkit-scrollbar-thumb {
+  background: var(--bg-buttons);
+  border-radius: 10px;
+}
+
+.QoPTableWrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-buttons_active);
+}
+
+/* ===== TABLE STYLES ===== */
+.QoPTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  text-align: center;
+  min-width: 1200px;
+}
+
+.QoPTable thead tr {
+  background: var(--bg-buttons);
+}
+
+.QoPTable th {
+  padding: 16px 20px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.QoPTable tbody td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+/* Row hover effects matching AdminDashboard */
+.QoPTable tbody tr {
+  transition: all 0.25s ease;
+}
+
+.QoPTable tbody tr:hover {
+  background: var(--hover-row);
+  transform: translateX(5px);
+}
+
+.QoPTable tbody tr:hover td {
+  color: var(--text-secondary);
+}
+
+/* Profile Photo */
+.QoPProfilePhoto {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.QoPTable tbody tr:hover .QoPProfilePhoto {
+  border-color: var(--text-secondary);
+  transform: scale(1.05);
+}
+
+/* ===== STATUS STYLES ===== */
+.QoPStatus {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+  min-width: 120px;
+}
+
+.QoPEligibleStatus {
+  background: rgba(7, 227, 59, 0.15);
+  color: #0c5460;
+  border: 1px solid rgba(7, 227, 59, 0.3);
+}
+
+.QoPNotEligibleStatus {
+  background: rgba(244, 67, 54, 0.15);
+  color: #721c24;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* ===== RANK CELL STYLES ===== */
+.rankCellColumn {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.rankCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.rankImage {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: linear-gradient(135deg, var(--bg-buttons), var(--bg-buttons_active));
+  padding: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.QoPTable tbody tr:hover .rankImage {
+  background: linear-gradient(135deg, var(--bg-buttons_active), var(--bg-buttons));
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Rank Placeholder */
+.rankPlaceholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rankPlaceholder.hidden {
+  display: none;
+}
+
+.rankPlaceholder.show {
+  display: flex;
+}
+
+.rankPlaceholderText {
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Rank Text */
+.rankText {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 60px;
+  text-align: left;
+}
+
+.QoPTable tbody tr:hover .rankText {
+  color: var(--text-secondary);
+}
+
+/* Next Rank Select Dropdown */
+.QoPRankInput {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  background: white;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.3s ease;
+  min-width: 90px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231060af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  padding-right: 30px;
+}
+
+.QoPRankInput:hover {
+  border-color: var(--bg-buttons);
+  box-shadow: 0 2px 8px rgba(16, 96, 175, 0.2);
+}
+
+.QoPRankInput:focus {
+  border-color: var(--bg-buttons);
+  box-shadow: 0 0 0 3px rgba(16, 96, 175, 0.1);
+}
+
+.QoPRankInput option {
+  font-weight: 600;
+  padding: 8px;
+  background: white;
+  color: var(--text-primary);
+}
+
+/* Max Rank Indicator */
+.QoPMaxRank {
+  color: #e74c3c;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 12px;
+  background: #ffebee;
+  border-radius: 6px;
+  border: 1px solid #ffcdd2;
+  display: inline-block;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.QoPActionBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 100px;
+}
+
+.QoPUpdateBtn {
+  background: var(--bg-approved);
+  color: var(--text-secondary);
+}
+
+.QoPUpdateBtn:hover {
+  background: #06d232;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(7, 227, 59, 0.4);
+}
+
+/* ===== PAGINATION STYLES (Matching AdminDashboard) ===== */
+.QoPPaginationContainer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0;
+  padding-right: 10px;
+  position: relative;
+  z-index: 5;
+}
+
+.QoPPaginationBtn {
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px 10px;
+  margin-left: 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 36px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.QoPPaginationBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  transform: scale(1.15);
+}
+
+.QoPPaginationBtn.QoPActive {
+  background: var(--bg-buttons_active);
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: scale(1.15);
+}
+
+.QoPPaginationBtn:disabled,
+.QoPPaginationBtn.QoPDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.QoPPaginationEllipsis {
+  padding: 6px 8px;
+  margin: 0 4px;
+  color: var(--bg-buttons);
+  font-weight: bold;
+  user-select: none;
+}
+
+/* Pagination click animation */
+@keyframes clickPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+
+.QoPPaginationBtn:active:not(:disabled) {
+  animation: clickPop 0.25s ease;
+}
+
+/* ===== NO DATA STATE ===== */
+.QoPNoData {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  border: 2px dashed var(--border);
+}
+
+.QoPNoData h3 {
+  margin: 0 0 10px 0;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.QoPNoData p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+/* ===== LOADING STATE ===== */
+.QoPLoading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+/* ===== RANK PROMOTION ANIMATIONS ===== */
+@keyframes rankPromotion {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.rankPromoted {
+  animation: rankPromotion 1s ease-in-out;
+}
+
+/* Animated Emoji */
+.animatedEmoji {
+  display: inline-block;
+  animation: bounceUpDown 2s ease-in-out infinite;
+}
+
+@keyframes bounceUpDown {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1024px) {
+  .QoPTable {
+    min-width: 1000px;
+  }
+}
+
+@media (max-width: 768px) {
+  .QoPContainer {
+    padding: 15px;
+  }
+  
+  .QoPTitle {
+    font-size: 1.5rem;
+  }
+  
+  .QoPSummary {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+  }
+  
+  .QoPTopControls {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .QoPTableHeader {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .QoPFilterType,
+  .QoPSearchBar {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .QoPViewAllBtn {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .QoPTable {
+    font-size: 13px;
+    min-width: 800px;
+  }
+  
+  .QoPTable th,
+  .QoPTable td {
+    padding: 12px 10px;
+  }
+  
+  .QoPPaginationContainer {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .rankCell {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .rankImage,
+  .rankPlaceholder {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .rankText {
+    font-size: 12px;
+    min-width: 50px;
+    text-align: center;
+  }
+  
+  .QoPProfilePhoto {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .QoPContainer {
+    padding: 10px;
+  }
+  
+  .QoPTitle {
+    font-size: 1.3rem;
+  }
+  
+  .QoPSummary {
+    grid-template-columns: 1fr;
+  }
+  
+  .QoPSummaryCard p {
+    font-size: 2em;
+  }
+  
+  .QoPTable {
+    min-width: 600px;
+    font-size: 12px;
+  }
+  
+  .QoPTable th,
+  .QoPTable td {
+    padding: 10px 8px;
+  }
+  
+  .QoPStatus {
+    font-size: 11px;
+    padding: 6px 10px;
+    min-width: 100px;
+  }
+  
+  .QoPActionBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 80px;
+  }
+  
+  .rankImage,
+  .rankPlaceholder {
+    width: 25px;
+    height: 25px;
+  }
+  
+  .rankPlaceholderText {
+    font-size: 12px;
+  }
+  
+  .QoPRankInput {
+    font-size: 12px;
+    padding: 6px 10px;
+    min-width: 80px;
+  }
+  
+  .QoPPaginationBtn {
+    padding: 5px 8px;
+    font-size: 12px;
+    min-width: 32px;
+  }
+}

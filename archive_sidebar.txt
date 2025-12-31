@@ -1,0 +1,3924 @@
+import React, { useState, useEffect } from "react";
+import Sidebar from "../../Sidebar.jsx";
+import Hamburger from "../../Hamburger.jsx";
+import styles from "../styles/ClearanceSystem.module.css";
+import { useSidebar } from "../../SidebarContext.jsx";
+import { Title, Meta } from "react-head";
+import { supabase } from "../../../lib/supabaseClient.js";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import BFPPreloader from "../../BFPPreloader.jsx";
+// Import utilities
+import {
+  fillClearanceFormEnhanced,
+  fillClearanceFormSimple,
+} from "../../utils/pdfClearanceFormFiller.js";
+import {
+  uploadClearanceDocumentToStorage,
+  createClearancePersonnelFolderName,
+  createClearancePdfFileName,
+  saveClearanceDocumentMetadata,
+  loadClearancePdfTemplate,
+} from "../../utils/clearanceDocumentUpload.js";
+import {
+  checkExistingClearance,
+  loadPersonnelEquipment,
+  updateClearanceStatus,
+  checkClearanceApprovalEligibility,
+  formatCurrency,
+  downloadPdf,
+} from "../../utils/clearanceUtils.js";
+const ClearanceSystem = () => {
+  const { isSidebarCollapsed } = useSidebar();
+  const [clearanceRequests, setClearanceRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
+  const [personnelList, setPersonnelList] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [showEquipmentModal, setShowEquipmentModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
+  const [confirmationData, setConfirmationData] = useState(null);
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfDownloadProgress, setPdfDownloadProgress] = useState(0);
+  const [pdfDownloadForRequest, setPdfDownloadForRequest] = useState(null);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedRequestForAction, setSelectedRequestForAction] =
+    useState(null);
+  const [approveRemarks, setApproveRemarks] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
+  const [existingPdfs, setExistingPdfs] = useState({});
+  const [selectedEquipment, setSelectedEquipment] = useState([]);
+  const [filters, setFilters] = useState({
+    status: "All",
+    search: "",
+    type: "All",
+  });
+  const [newClearance, setNewClearance] = useState({
+    personnel_id: "",
+    employee_name: "",
+    type: "",
+    equipment_ids: [],
+  });
+  const [loading, setLoading] = useState(false);
+  const [equipmentLoading, setEquipmentLoading] = useState(false);
+  const [showPreloader, setShowPreloader] = useState(true);
+  const [preloaderProgress, setPreloaderProgress] = useState(0);
+
+  const rowsPerPage = 5;
+
+  // Helper function to create organized folder names
+  const createPersonnelFolderName = (personnel) => {
+    // Format: "FullName_Rank_BadgeNumber"
+    const fullName =
+      personnel?.employee
+        ?.replace(/[^a-zA-Z0-9\s]/g, "")
+        ?.replace(/\s+/g, "_") || "Unknown";
+    const rank =
+      personnel?.rank?.replace(/[^a-zA-Z0-9\s]/g, "")?.replace(/\s+/g, "_") ||
+      "N/A";
+    const badgeNumber =
+      personnel?.badge_number?.replace(/[^a-zA-Z0-9]/g, "") || "N/A";
+
+    return `${fullName}_${rank}_${badgeNumber}`;
+  };
+  // Add this useEffect in your ClearanceSystem component
+  useEffect(() => {
+    // Subscribe to clearance_requests changes
+    const clearanceSubscription = supabase
+      .channel("clearance-requests-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "clearance_requests",
+        },
+        (payload) => {
+          console.log("Clearance request changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    // Subscribe to clearance_inventory changes
+    const inventorySubscription = supabase
+      .channel("clearance-inventory-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "clearance_inventory",
+        },
+        (payload) => {
+          console.log("Clearance inventory changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    // Subscribe to inspections changes
+    const inspectionsSubscription = supabase
+      .channel("inspections-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "inspections",
+        },
+        (payload) => {
+          console.log("Inspection changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    // Subscribe to accountability changes
+    const accountabilitySubscription = supabase
+      .channel("accountability-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "personnel_equipment_accountability_table",
+        },
+        (payload) => {
+          console.log("Accountability changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearanceSubscription.unsubscribe();
+      inventorySubscription.unsubscribe();
+      inspectionsSubscription.unsubscribe();
+      accountabilitySubscription.unsubscribe();
+    };
+  }, []);
+  // Add this near your other useEffect hooks
+  useEffect(() => {
+    // Sync status when clearanceRequests changes
+    const checkAndUpdateButtonVisibility = async () => {
+      if (clearanceRequests.length > 0) {
+        console.log("🔄 Checking button visibility for all requests...");
+
+        clearanceRequests.forEach((req) => {
+          const shouldShow = shouldShowApproveRejectButtons(req);
+          console.log(
+            `Request ${req.id} (${req.employee}): status=${req.status}, showButtons=${shouldShow}`
+          );
+        });
+      }
+    };
+
+    checkAndUpdateButtonVisibility();
+  }, [clearanceRequests]);
+  const formatPHP = (amount) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(amount || 0);
+  };
+
+  // Load data from Supabase
+  useEffect(() => {
+    const initializeData = async () => {
+      setShowPreloader(true);
+      setPreloaderProgress(10);
+
+      try {
+        setPreloaderProgress(30);
+        await loadClearanceRequests();
+
+        setPreloaderProgress(60);
+        await loadPersonnel();
+
+        setPreloaderProgress(90);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        setPreloaderProgress(100);
+
+        setTimeout(() => {
+          setShowPreloader(false);
+        }, 800);
+      } catch (error) {
+        console.error("Initialization error:", error);
+        toast.error("Failed to initialize system", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        setShowPreloader(false);
+      }
+    };
+
+    initializeData();
+  }, []);
+
+  // Load existing PDFs with organized folder structure
+  useEffect(() => {
+    const loadExistingPdfs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("clearance_documents")
+          .select(
+            "id, clearance_request_id, document_name, file_url, file_path, document_type"
+          )
+          .eq("document_type", "CLEARANCE_FORM")
+          .in(
+            "clearance_request_id",
+            clearanceRequests.map((req) => req.id)
+          );
+
+        if (!error && data) {
+          const pdfsMap = {};
+          data.forEach((doc) => {
+            if (!pdfsMap[doc.clearance_request_id]) {
+              pdfsMap[doc.clearance_request_id] = [];
+            }
+            pdfsMap[doc.clearance_request_id].push(doc);
+          });
+          setExistingPdfs(pdfsMap);
+
+          // Log folder structure for debugging
+          data.forEach((doc) => {
+            if (doc.file_path) {
+              console.log(`📁 PDF stored in: ${doc.file_path}`);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error loading existing PDFs:", err);
+      }
+    };
+
+    if (clearanceRequests.length > 0) {
+      loadExistingPdfs();
+    }
+  }, [clearanceRequests]);
+
+  // Filter data when filters change
+  useEffect(() => {
+    filterData();
+  }, [clearanceRequests, filters]);
+
+  const handleRetryPreloader = () => {
+    setShowPreloader(true);
+    setPreloaderProgress(0);
+    loadClearanceRequests();
+    loadPersonnel();
+  };
+
+  // UPDATED: loadClearanceRequests with organized folder structure
+  const loadClearanceRequests = async () => {
+    try {
+      setLoading(true);
+
+      if (showPreloader) {
+        setPreloaderProgress(40);
+      }
+
+      const { data, error } = await supabase
+        .from("clearance_requests")
+        .select(
+          `
+        *,
+        personnel:personnel_id (
+          first_name,
+          middle_name,
+          last_name,
+          username,
+          rank,
+          rank_image,
+          badge_number,
+          station
+        )
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Format the data and fetch equipment separately
+      const formattedData = await Promise.all(
+        (data || []).map(async (request, index) => {
+          if (showPreloader && index % 5 === 0) {
+            setPreloaderProgress((prev) => Math.min(prev + 2, 80));
+            console.log(
+              `📋 Request ${request.id}: DB Status = ${request.status}, Type = ${request.type}`
+            );
+          }
+
+          const personnel = request.personnel || {};
+          const employeeName = `${personnel.first_name || ""} ${
+            personnel.middle_name || ""
+          } ${personnel.last_name || ""}`
+            .replace(/\s+/g, " ")
+            .trim();
+          let rankImageUrl = "";
+          if (personnel.rank_image) {
+            try {
+              // Check if it's already a full URL
+              if (personnel.rank_image.startsWith("http")) {
+                rankImageUrl = personnel.rank_image;
+              } else {
+                // Get public URL from rank_images bucket
+                const { data: imageData } = supabase.storage
+                  .from("rank_images")
+                  .getPublicUrl(personnel.rank_image);
+                rankImageUrl = imageData?.publicUrl || "";
+              }
+            } catch (imgError) {
+              console.warn("Error loading rank image:", imgError);
+              rankImageUrl = "";
+            }
+          }
+
+          // Create folder name for this request
+          const folderName = createPersonnelFolderName({
+            employee: employeeName,
+            rank: personnel.rank,
+            badge_number: personnel.badge_number,
+          });
+
+          let equipmentCount = 0;
+          let equipmentDisplay = "Not Applicable";
+          let inspectionStatus = "Not Applicable";
+
+          // Check if request type qualifies for inspection
+          const requiresInspection =
+            request.type === "Retirement" ||
+            request.type === "Resignation" ||
+            request.type === "Equipment Completion";
+
+          // Determine the new status based on equipment inspection
+          let newStatus = request.status;
+
+          if (requiresInspection) {
+            inspectionStatus = "Pending";
+            equipmentDisplay = "No Equipment";
+
+            const equipmentItems = await loadPersonnelEquipment(
+              request.personnel_id
+            );
+            equipmentCount = equipmentItems.length || 0;
+
+            if (equipmentCount > 0) {
+              equipmentDisplay = `${equipmentCount} item(s)`;
+
+              const { data: clearanceItems, error: countError } = await supabase
+                .from("clearance_inventory")
+                .select("status, inspection_id, inventory_id")
+                .eq("clearance_request_id", request.id);
+
+              if (!countError && clearanceItems && clearanceItems.length > 0) {
+                // Count items by status
+                const totalItems = clearanceItems.length;
+                const clearedItems = clearanceItems.filter(
+                  (item) => item.status === "Cleared"
+                ).length;
+                const pendingItems = clearanceItems.filter(
+                  (item) => item.status === "Pending"
+                ).length;
+                const damagedItems = clearanceItems.filter(
+                  (item) => item.status === "Damaged"
+                ).length;
+                const lostItems = clearanceItems.filter(
+                  (item) => item.status === "Lost"
+                ).length;
+
+                // Check accountability status
+                const { data: accountabilityData, error: accountabilityError } =
+                  await supabase
+                    .from("personnel_equipment_accountability_table")
+                    .select("accountability_status")
+                    .eq("personnel_id", request.personnel_id)
+                    .eq("clearance_request_id", request.id)
+                    .maybeSingle();
+
+                const isAccountabilitySettled =
+                  accountabilityData?.accountability_status === "SETTLED";
+
+                // ====== DETERMINE INSPECTION STATUS ======
+                console.log(
+                  `🔍 Inspection analysis for request ${request.id}:`,
+                  {
+                    totalItems,
+                    clearedItems,
+                    pendingItems,
+                    damagedItems,
+                    lostItems,
+                    isAccountabilitySettled,
+                  }
+                );
+
+                // LOGIC FLOW for inspection status:
+                // 1. Check if FAIL condition (damaged/lost equipment)
+                if (damagedItems > 0 || lostItems > 0) {
+                  // Check if accountability has been created
+                  const { data: accountabilityRecord, error: accError } =
+                    await supabase
+                      .from("accountability_records")
+                      .select("id, is_settled")
+                      .eq("personnel_id", request.personnel_id)
+                      .eq("clearance_request_id", request.id)
+                      .in("record_type", ["DAMAGED", "LOST"])
+                      .limit(1);
+
+                  if (
+                    !accError &&
+                    accountabilityRecord &&
+                    accountabilityRecord.length > 0
+                  ) {
+                    // Accountability record exists
+                    const isAccountabilitySettled =
+                      accountabilityRecord[0].is_settled === true;
+
+                    if (isAccountabilitySettled) {
+                      inspectionStatus = "PASS (Settled)";
+                    } else {
+                      inspectionStatus = "FAIL (Accountability Pending)";
+                    }
+                  } else {
+                    // No accountability record yet for damaged/lost equipment
+                    inspectionStatus = "FAIL (Needs Accountability)";
+                  }
+                }
+                // 2. Check if all equipment is cleared
+                else if (clearedItems === totalItems) {
+                  inspectionStatus = "PASS";
+                }
+                // 3. Check if some items are pending
+                else if (pendingItems > 0) {
+                  // Check if inspections are scheduled
+                  const inventoryIds = clearanceItems
+                    .filter((item) => item.status === "Pending")
+                    .map((item) => item.inventory_id);
+
+                  const { data: scheduledInspections, error: scheduleError } =
+                    await supabase
+                      .from("inspections")
+                      .select("id")
+                      .in("equipment_id", inventoryIds)
+                      .in("status", ["PENDING", "IN_PROGRESS"]);
+
+                  const hasScheduledInspections =
+                    !scheduleError &&
+                    scheduledInspections &&
+                    scheduledInspections.length > 0;
+
+                  inspectionStatus = hasScheduledInspections
+                    ? "In Progress"
+                    : "Pending";
+                }
+                // 4. Default fallback
+                else {
+                  inspectionStatus = "In Progress";
+                }
+
+                // ====== DETERMINE CLEARANCE REQUEST STATUS ======
+                if (
+                  pendingItems === 0 &&
+                  damagedItems === 0 &&
+                  lostItems === 0
+                ) {
+                  // All items cleared
+                  newStatus = "Pending for Approval";
+                  console.log(
+                    `✅ Request ${request.id}: All items cleared, status = Pending for Approval`
+                  );
+                } else if (damagedItems > 0 || lostItems > 0) {
+                  // Has damaged/lost equipment
+                  if (isAccountabilitySettled) {
+                    newStatus = "Pending for Approval";
+                    console.log(
+                      `✅ Request ${request.id}: Accountability settled, status = Pending for Approval`
+                    );
+                  } else {
+                    newStatus = "In Progress";
+                    console.log(
+                      `⏳ Request ${request.id}: Needs accountability, status = In Progress`
+                    );
+                  }
+                } else if (pendingItems > 0) {
+                  // Still pending items
+                  newStatus = "In Progress";
+                  console.log(
+                    `⏳ Request ${request.id}: Has pending items, status = In Progress`
+                  );
+                }
+
+                // ====== TRIPLE-CHECK: If FAIL status but accountability exists and is settled ======
+                if (
+                  inspectionStatus.startsWith("FAIL") &&
+                  isAccountabilitySettled
+                ) {
+                  inspectionStatus = "PASS (Settled)";
+                  newStatus = "Pending for Approval";
+                }
+              } else {
+                // No clearance items added yet
+                inspectionStatus = "Not Yet Added";
+                newStatus = "Pending";
+              }
+            } else {
+              equipmentDisplay = "No Equipment";
+              inspectionStatus = "No Equipment";
+              // No equipment means it can be approved
+              newStatus = "Pending for Approval";
+              console.log(
+                `✅ Request ${request.id}: No equipment, status = Pending for Approval`
+              );
+            }
+          } else {
+            // For non-inspection clearance types
+            const { data: clearanceItems, error: countError } = await supabase
+              .from("clearance_inventory")
+              .select("id")
+              .eq("clearance_request_id", request.id);
+
+            if (!countError && clearanceItems) {
+              equipmentCount = clearanceItems.length || 0;
+              if (equipmentCount > 0) {
+                equipmentDisplay = `${equipmentCount} item(s)`;
+              }
+            }
+            inspectionStatus = "Not Applicable";
+            // For non-equipment clearances, they can be approved if pending
+            if (request.status === "Pending") {
+              newStatus = "Pending for Approval";
+            }
+          }
+
+          // Update the clearance request status in database if changed
+          if (
+            newStatus !== request.status &&
+            request.status !== "Completed" &&
+            request.status !== "Rejected"
+          ) {
+            console.log(
+              `🔄 Updating clearance ${request.id} from ${request.status} to ${newStatus}`
+            );
+
+            // Update in database
+            const { error: updateError } = await supabase
+              .from("clearance_requests")
+              .update({
+                status: newStatus,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", request.id);
+
+            if (updateError) {
+              console.error("Error updating clearance status:", updateError);
+            } else {
+              console.log(
+                `✅ Successfully updated clearance ${request.id} to ${newStatus}`
+              );
+            }
+          }
+
+          return {
+            id: request.id,
+            personnel_id: request.personnel_id,
+            employee: employeeName || "Unknown",
+            username: personnel.username || "",
+            rank: personnel.rank || "",
+            rank_image: rankImageUrl,
+            badge_number: personnel.badge_number || "",
+            type: request.type,
+
+            original_status: newStatus, // Use the calculated new status
+            status: request.status,
+            inspection_status: inspectionStatus,
+            equipment_display: equipmentDisplay,
+            equipment_count: equipmentCount,
+            date: request.created_at
+              ? new Date(request.created_at).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "",
+            effective_date: request.effective_date,
+            expected_completion_date: request.expected_completion_date,
+            actual_completion_date: request.actual_completion_date,
+            remarks: request.remarks,
+            approved_by: request.approved_by,
+            approved_at: request.approved_at,
+            rejection_reason: request.rejection_reason,
+            missing_amount: request.missing_amount,
+            created_at: request.created_at,
+            updated_at: request.updated_at,
+            // Add folder name for reference
+            folder_name: folderName,
+            // Notice me!!
+            accountability_settled:
+              inspectionStatus === "PASS" && requiresInspection,
+           
+          };
+        })
+      );
+
+      setClearanceRequests(formattedData);
+    } catch (err) {
+      console.error("Error loading clearance requests:", err);
+      toast.error("Failed to load clearance requests", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // UPDATED: Function to check if clearance can be approved based on accountability
+  const checkClearanceApprovalEligibility = async (requestId, personnelId) => {
+    try {
+      // Check if this is an equipment-related clearance type
+      const request = clearanceRequests.find((r) => r.id === requestId);
+      if (!request) return false;
+
+      const isEquipmentRelated =
+        request.type === "Retirement" ||
+        request.type === "Resignation" ||
+        request.type === "Equipment Completion";
+
+      if (!isEquipmentRelated) {
+        return true; // Non-equipment clearances can always be approved
+      }
+
+      // Check if there's any accountability record
+      const { data: accountabilityData, error } = await supabase
+        .from("personnel_equipment_accountability_table")
+        .select("accountability_status")
+        .eq("personnel_id", personnelId)
+        .eq("clearance_request_id", requestId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error checking accountability:", error);
+        return false;
+      }
+
+      // If there's an accountability record, check if it's settled
+      if (accountabilityData) {
+        return accountabilityData.accountability_status === "SETTLED";
+      }
+
+      // No accountability record means no lost/damaged equipment
+      return true;
+    } catch (err) {
+      console.error("Error in checkClearanceApprovalEligibility:", err);
+      return false;
+    }
+  };
+
+  // UPDATED: Open approve modal with eligibility check
+  const openApproveModal = async (request) => {
+    const canApprove = await checkClearanceApprovalEligibility(
+      request.id,
+      request.personnel_id
+    );
+
+    if (!canApprove) {
+      toast.warning(
+        "Cannot approve clearance: Equipment accountability not settled yet.",
+        {
+          position: "top-right",
+          autoClose: 4000,
+        }
+      );
+      return;
+    }
+
+    setSelectedRequestForAction(request);
+    setApproveRemarks("");
+    setShowApproveModal(true);
+  };
+
+  const handleClearanceSubmit = async (e) => {
+    e.preventDefault();
+    const { personnel_id, type } = newClearance;
+
+    if (!personnel_id || !type) {
+      toast.warning("Please select both Employee and Clearance Type.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    // ✅ ONLY ONE CALL - Use the new function
+    const { exists, message } = await checkExistingClearance(
+      personnel_id,
+      type
+    );
+    if (exists) {
+      toast.warning(message, {
+        position: "top-right",
+        autoClose: 4000,
+      });
+      return;
+    }
+
+    setShowPreloader(true);
+    setPreloaderProgress(10);
+
+    try {
+      setLoading(true);
+      setPreloaderProgress(30);
+
+      const selectedPersonnel = personnelList.find(
+        (p) => p.id === personnel_id
+      );
+      const employeeName = selectedPersonnel
+        ? `${selectedPersonnel.first_name || ""} ${
+            selectedPersonnel.middle_name || ""
+          } ${selectedPersonnel.last_name || ""}`
+            .replace(/\s+/g, " ")
+            .trim()
+        : "Unknown";
+
+      const confirmationInfo = {
+        personnel_id,
+        employeeName,
+        type,
+        equipmentCount: inventoryItems.length,
+        totalValue: inventoryItems.reduce(
+          (sum, item) => sum + (item.price || 0),
+          0
+        ),
+        equipmentList: inventoryItems,
+      };
+
+      setConfirmationData(confirmationInfo);
+      setShowSubmitConfirmation(true);
+
+      setPreloaderProgress(60);
+    } catch (err) {
+      console.error("Error in form submission:", err);
+      toast.error("Failed to process form submission", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+      setShowPreloader(false);
+    }
+  };
+  const confirmClearanceSubmission = async () => {
+    if (!confirmationData) return;
+
+    const {
+      personnel_id,
+      type,
+      employeeName,
+      equipmentCount,
+      totalValue,
+      equipmentList,
+    } = confirmationData;
+
+    try {
+      setSubmissionLoading(true);
+      setShowPreloader(true);
+      setPreloaderProgress(10);
+
+      setPreloaderProgress(20);
+      const { exists, message } = await checkExistingClearance(
+        personnel_id,
+        type
+      );
+      if (exists) {
+        toast.warning(message, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+        setShowPreloader(false);
+        setSubmissionLoading(false);
+        setShowSubmitConfirmation(false);
+        setConfirmationData(null);
+        return;
+      }
+
+      // ✅ FIX: Generate UUID for the request
+      const requestId = crypto.randomUUID
+        ? crypto.randomUUID()
+        : generateUUID();
+
+      const newRequest = {
+        id: requestId, // Add the generated ID
+        personnel_id: personnel_id,
+        type: type,
+        status: "Pending",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      setPreloaderProgress(30);
+      console.log("Creating clearance request:", newRequest);
+
+      // Try insert without expecting return first
+      const { error: insertError } = await supabase
+        .from("clearance_requests")
+        .insert([newRequest]);
+
+      if (insertError) {
+        console.error("Error creating clearance request:", insertError);
+
+        if (insertError.code === "23505") {
+          toast.error(
+            `Duplicate clearance request found for ${employeeName}.`,
+            {
+              position: "top-right",
+              autoClose: 4000,
+            }
+          );
+        } else if (insertError.code === "23503") {
+          toast.error(`Invalid personnel ID. Please check the employee data.`, {
+            position: "top-right",
+            autoClose: 4000,
+          });
+        } else {
+          throw insertError;
+        }
+
+        setShowPreloader(false);
+        setSubmissionLoading(false);
+        return;
+      }
+
+      console.log("Clearance request created with ID:", requestId);
+
+      setPreloaderProgress(50);
+      let clearanceItems = [];
+
+      if (
+        type === "Resignation" ||
+        type === "Retirement" ||
+        type === "Equipment Completion"
+      ) {
+        const equipmentItems = await loadPersonnelEquipment(personnel_id);
+
+        console.log(
+          "Personnel equipment found:",
+          equipmentItems.length,
+          "items"
+        );
+
+        if (equipmentItems && equipmentItems.length > 0) {
+          clearanceItems = equipmentItems.map((equipment) => ({
+            clearance_request_id: requestId, // Use the generated ID
+            inventory_id: equipment.id,
+            personnel_id: personnel_id,
+            status: "Pending",
+            price: equipment.price || 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }));
+
+          console.log(
+            "Inserting equipment into clearance_inventory:",
+            clearanceItems.length,
+            "items"
+          );
+
+          setPreloaderProgress(70);
+          if (clearanceItems.length > 0) {
+            const { error: itemsError } = await supabase
+              .from("clearance_inventory")
+              .insert(clearanceItems);
+
+            if (itemsError) {
+              console.error(
+                "Error inserting into clearance_inventory:",
+                itemsError
+              );
+              toast.warning(
+                "Clearance created but equipment linking failed. Please add equipment manually.",
+                {
+                  position: "top-right",
+                  autoClose: 4000,
+                }
+              );
+            } else {
+              console.log(
+                "Equipment saved to clearance_inventory successfully"
+              );
+            }
+          }
+        } else {
+          console.log("No equipment found for this personnel");
+        }
+      } else if (
+        newClearance.equipment_ids &&
+        newClearance.equipment_ids.length > 0
+      ) {
+        console.log(
+          "Adding selected equipment for non-standard clearance type"
+        );
+        clearanceItems = newClearance.equipment_ids.map((equipmentId) => ({
+          clearance_request_id: requestId, // Use the generated ID
+          inventory_id: equipmentId,
+          personnel_id: personnel_id,
+          status: "Pending",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }));
+
+        setPreloaderProgress(70);
+        if (clearanceItems.length > 0) {
+          const { error: itemsError } = await supabase
+            .from("clearance_inventory")
+            .insert(clearanceItems);
+
+          if (itemsError) {
+            console.error("Error inserting equipment:", itemsError);
+          }
+        }
+      }
+
+      // Reset form
+      setNewClearance({
+        personnel_id: "",
+        employee_name: "",
+        type: "",
+        equipment_ids: [],
+      });
+      setInventoryItems([]);
+      setShowForm(false);
+      setShowSubmitConfirmation(false);
+      setConfirmationData(null);
+
+      setPreloaderProgress(85);
+      await loadClearanceRequests();
+
+      setPreloaderProgress(100);
+
+      toast.success("Clearance request created successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+
+      if (
+        (type === "Resignation" ||
+          type === "Retirement" ||
+          type === "Equipment Completion") &&
+        clearanceItems.length > 0
+      ) {
+        toast.info(
+          "Equipment added for clearance. Accountability will be assessed during inspection.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+          }
+        );
+      }
+
+      setTimeout(() => {
+        setShowPreloader(false);
+      }, 500);
+    } catch (err) {
+      console.error("Error submitting clearance:", err);
+      setShowPreloader(false);
+
+      let errorMessage = "Failed to submit clearance request";
+      if (err.message) {
+        errorMessage += `: ${err.message}`;
+      }
+      if (err.code) {
+        errorMessage += ` (Code: ${err.code})`;
+      }
+
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 4000,
+      });
+    } finally {
+      setSubmissionLoading(false);
+      setLoading(false);
+    }
+  };
+
+  // Helper function to generate UUID if crypto.randomUUID is not available
+  function generateUUID() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
+  }
+
+  const checkExistingClearance = async (personnelId, type) => {
+    try {
+      // Check for any active Retirement or Resignation clearances first
+      const { data: retirementResignationData, error: rrError } = await supabase
+        .from("clearance_requests")
+        .select("id, type, status")
+        .eq("personnel_id", personnelId)
+        .in("type", ["Retirement", "Resignation"])
+        .in("status", ["Pending", "In Progress"])
+        .limit(1);
+
+      if (rrError) throw rrError;
+
+      // If user already has an active Retirement or Resignation
+      if (retirementResignationData && retirementResignationData.length > 0) {
+        const existingType = retirementResignationData[0].type;
+        const existingStatus = retirementResignationData[0].status;
+
+        // If trying to submit another Retirement/Resignation while one already exists
+        if (
+          (type === "Retirement" || type === "Resignation") &&
+          (existingType === "Retirement" || existingType === "Resignation")
+        ) {
+          return {
+            exists: true,
+            message: `Cannot submit ${type} clearance: Personnel already has a ${existingType.toLowerCase()} clearance (Status: ${existingStatus})`,
+          };
+        }
+
+        // If trying to submit Retirement while Resignation exists or vice versa
+        if (
+          (type === "Retirement" && existingType === "Resignation") ||
+          (type === "Resignation" && existingType === "Retirement")
+        ) {
+          return {
+            exists: true,
+            message: `Cannot submit ${type} clearance: Personnel already has a ${existingType.toLowerCase()} clearance (Status: ${existingStatus})`,
+          };
+        }
+      }
+
+      // Check for existing clearance of the same type
+      const { data: sameTypeData, error: sameTypeError } = await supabase
+        .from("clearance_requests")
+        .select("id, status")
+        .eq("personnel_id", personnelId)
+        .eq("type", type)
+        .in("status", ["Pending", "In Progress"])
+        .limit(1);
+
+      if (sameTypeError) throw sameTypeError;
+
+      if (sameTypeData && sameTypeData.length > 0) {
+        const existingStatus = sameTypeData[0].status;
+        return {
+          exists: true,
+          message: `This personnel already has a ${type.toLowerCase()} clearance request (Status: ${existingStatus}).`,
+        };
+      }
+
+      return { exists: false, message: "" };
+    } catch (error) {
+      console.error("Error checking existing clearance:", error);
+      return { exists: false, message: "" };
+    }
+  };
+
+  const openRejectModal = (request) => {
+    setSelectedRequestForAction(request);
+    setRejectReason("");
+    setShowRejectModal(true);
+  };
+
+  // ========= MISSING FUNCTION: loadPersonnel =========
+  const loadPersonnel = async () => {
+    try {
+      // Update progress if preloader is showing
+      if (showPreloader) {
+        setPreloaderProgress(40);
+      }
+
+      const { data, error } = await supabase
+        .from("personnel")
+        .select(
+          "id, first_name, middle_name, last_name, username, rank, rank_image, badge_number" // Added rank_image
+        )
+        .order("last_name", { ascending: true });
+
+      if (error) throw error;
+
+      // Transform rank_image URLs if needed
+      const personnelWithRankImages = (data || []).map((person) => {
+        let rankImageUrl = person.rank_image;
+
+        // If rank_image is a storage path, convert to public URL
+        if (rankImageUrl && !rankImageUrl.startsWith("http")) {
+          const { data: imageData } = supabase.storage
+            .from("rank_images")
+            .getPublicUrl(rankImageUrl);
+          rankImageUrl = imageData?.publicUrl || "";
+        }
+
+        return {
+          ...person,
+          rank_image: rankImageUrl,
+        };
+      });
+
+      setPersonnelList(personnelWithRankImages || []);
+    } catch (err) {
+      console.error("Error loading personnel:", err);
+      toast.error("Failed to load personnel data", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const loadPersonnelEquipment = async (personnelId) => {
+    try {
+      console.log("🔍 Loading equipment for personnel ID:", personnelId);
+
+      // Only use assigned_personnel_id for exact matching
+      const { data: dataById, error: errorById } = await supabase
+        .from("inventory")
+        .select(
+          "id, item_name, item_code, category, status, assigned_to, price, is_active, assigned_personnel_id"
+        )
+        .eq("assigned_personnel_id", personnelId) // This is the key
+        .eq("is_active", true);
+
+      if (errorById) {
+        console.error("Error loading by ID:", errorById);
+        return [];
+      }
+
+      console.log(
+        `✅ Found ${dataById?.length || 0} equipment items by personnel ID`
+      );
+
+      return dataById || [];
+    } catch (err) {
+      console.error("💥 Error loading personnel equipment:", err);
+      return [];
+    }
+  };
+  const filterData = () => {
+    let filtered = clearanceRequests.filter((req) => {
+      const statusMatch =
+        filters.status === "All" || req.status === filters.status;
+      const typeMatch = filters.type === "All" || req.type === filters.type;
+      const searchMatch =
+        (req.employee || "")
+          .toLowerCase()
+          .includes(filters.search.toLowerCase()) ||
+        (req.type || "").toLowerCase().includes(filters.search.toLowerCase()) ||
+        (req.username || "")
+          .toLowerCase()
+          .includes(filters.search.toLowerCase()) ||
+        (req.badge_number || "")
+          .toLowerCase()
+          .includes(filters.search.toLowerCase());
+      return statusMatch && typeMatch && searchMatch;
+    });
+    setFilteredRequests(filtered);
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const viewEquipment = async (requestId) => {
+    try {
+      setEquipmentLoading(true);
+
+      const { data: requestData, error: requestError } = await supabase
+        .from("clearance_requests")
+        .select("type, personnel_id, status")
+        .eq("id", requestId)
+        .single();
+
+      if (requestError) throw requestError;
+
+      // DECLARE variables at the beginning
+      let equipmentList = [];
+      let equipmentSource = "";
+      let isAccountabilitySettled = false;
+
+      // Check accountability status if this is an equipment-related clearance
+      if (
+        requestData.type === "Retirement" ||
+        requestData.type === "Resignation" ||
+        requestData.type === "Equipment Completion"
+      ) {
+        const { data: accountabilityData, error: accountabilityError } =
+          await supabase
+            .from("personnel_equipment_accountability_table")
+            .select("accountability_status")
+            .eq("personnel_id", requestData.personnel_id)
+            .eq("clearance_request_id", requestId)
+            .maybeSingle();
+
+        if (!accountabilityError && accountabilityData) {
+          isAccountabilitySettled =
+            accountabilityData.accountability_status === "SETTLED";
+        }
+      }
+
+      // Fetch from the enhanced view (if it exists) or use clearance_inventory
+      try {
+        const { data: clearanceItems, error: clearanceError } = await supabase
+          .from("clearance_equipment_with_accountability")
+          .select(
+            `
+            *,
+            inventory:inventory_id (
+              item_name,
+              item_code,
+              category,
+              status,
+              assigned_to,
+              price,
+              current_value,
+              purchase_date,
+              specifications
+            ),
+            personnel:personnel_id (
+              first_name,
+              middle_name,
+              last_name,
+              username,
+              badge_number
+            )
+            `
+          )
+          .eq("clearance_request_id", requestId);
+
+        if (!clearanceError && clearanceItems && clearanceItems.length > 0) {
+          equipmentList = clearanceItems.map((item) => ({
+            id: item.id,
+            inventory_id: item.inventory_id,
+            personnel_id: item.personnel_id,
+            personnel_name: item.personnel
+              ? `${item.personnel.first_name || ""} ${
+                  item.personnel.middle_name || ""
+                } ${item.personnel.last_name || ""}`.trim()
+              : "Unknown",
+            name: item.inventory?.item_name,
+            code: item.inventory?.item_code,
+            category: item.inventory?.category,
+            status: item.inventory?.status,
+            assigned_to: item.inventory?.assigned_to,
+            price: item.inventory?.price,
+            current_value: item.inventory?.current_value,
+            purchase_date: item.inventory?.purchase_date,
+            specifications: item.inventory?.specifications,
+            clearance_status:
+              item.effective_status || item.clearance_status || "Pending",
+            original_clearance_status: item.clearance_status || "Pending",
+            accountability_info: item.accountability_info || [],
+            remarks: item.remarks,
+            returned: item.returned,
+            return_date: item.return_date,
+            inspection_date: item.inspection_date,
+            inspector_name: item.inspector_name,
+            findings: item.findings,
+          }));
+          equipmentSource = "clearance_inventory (view)";
+        } else {
+          // Fallback to original clearance_inventory table if view doesn't exist
+          throw new Error("View not available, falling back to table");
+        }
+      } catch (viewError) {
+        console.log(
+          "Using fallback clearance_inventory query:",
+          viewError.message
+        );
+
+        // Fallback to original clearance_inventory query
+        const { data: clearanceItems, error: clearanceError } = await supabase
+          .from("clearance_inventory")
+          .select(
+            `
+            *,
+            inventory:inventory_id (
+              item_name,
+              item_code,
+              category,
+              status,
+              assigned_to,
+              price,
+              current_value,
+              purchase_date,
+              specifications
+            ),
+            personnel:personnel_id (
+              first_name,
+              middle_name,
+              last_name,
+              username,
+              badge_number
+            )
+            `
+          )
+          .eq("clearance_request_id", requestId);
+
+        if (!clearanceError && clearanceItems && clearanceItems.length > 0) {
+          // Check for settled accountability to determine effective status
+          const effectiveStatus = isAccountabilitySettled
+            ? "Cleared"
+            : "Pending";
+
+          equipmentList = clearanceItems.map((item) => ({
+            id: item.id,
+            inventory_id: item.inventory_id,
+            personnel_id: item.personnel_id,
+            personnel_name: item.personnel
+              ? `${item.personnel.first_name || ""} ${
+                  item.personnel.middle_name || ""
+                } ${item.personnel.last_name || ""}`.trim()
+              : "Unknown",
+            name: item.inventory?.item_name,
+            code: item.inventory?.item_code,
+            category: item.inventory?.category,
+            status: item.inventory?.status,
+            assigned_to: item.inventory?.assigned_to,
+            price: item.inventory?.price,
+            current_value: item.inventory?.current_value,
+            purchase_date: item.inventory?.purchase_date,
+            specifications: item.inventory?.specifications,
+            clearance_status: isAccountabilitySettled
+              ? "Cleared"
+              : item.status || "Pending",
+            original_clearance_status: item.status || "Pending",
+            accountability_info: isAccountabilitySettled
+              ? [{ is_settled: true }]
+              : [],
+            remarks: item.remarks,
+            returned: item.returned,
+            return_date: item.return_date,
+            inspection_date: item.inspection_date,
+            inspector_name: item.inspector_name,
+            findings: item.findings,
+          }));
+          equipmentSource = "clearance_inventory";
+        }
+      }
+
+      // If no clearance items found, check inventory
+      if (equipmentList.length === 0) {
+        const equipmentItems = await loadPersonnelEquipment(
+          requestData.personnel_id
+        );
+
+        if (equipmentItems && equipmentItems.length > 0) {
+          const { data: personnelData } = await supabase
+            .from("personnel")
+            .select("first_name, middle_name, last_name")
+            .eq("id", requestData.personnel_id)
+            .single();
+
+          const personnelName = personnelData
+            ? `${personnelData.first_name || ""} ${
+                personnelData.middle_name || ""
+              } ${personnelData.last_name || ""}`.trim()
+            : "Unknown";
+
+          equipmentList = equipmentItems.map((item) => ({
+            id: item.id,
+            inventory_id: item.id,
+            personnel_id: requestData.personnel_id,
+            personnel_name: personnelName,
+            name: item.item_name,
+            code: item.item_code,
+            category: item.category,
+            status: item.status,
+            assigned_to: item.assigned_to,
+            price: item.price,
+            current_value: item.current_value,
+            purchase_date: item.purchase_date,
+            specifications: item.specifications,
+            clearance_status: "Not Yet Added",
+            original_clearance_status: "Not Yet Added",
+            accountability_info: [],
+            remarks: "",
+            returned: false,
+            return_date: null,
+            inspection_date: null,
+            inspector_name: null,
+            findings: null,
+          }));
+          equipmentSource = "inventory";
+        }
+      }
+
+      setSelectedEquipment(equipmentList);
+
+      const request = clearanceRequests.find((r) => r.id === requestId);
+      setSelectedRequest({
+        ...request,
+        equipment_source: equipmentSource,
+        accountability_settled: isAccountabilitySettled,
+      });
+
+      setShowEquipmentModal(true);
+    } catch (err) {
+      console.error("Error loading equipment:", err);
+      toast.error("Failed to load equipment details", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setEquipmentLoading(false);
+    }
+  };
+
+  const handleEmployeeChange = async (e) => {
+    const personnel_id = e.target.value;
+    const selectedPersonnel = personnelList.find((p) => p.id === personnel_id);
+
+    const employeeName = selectedPersonnel
+      ? `${selectedPersonnel.first_name || ""} ${
+          selectedPersonnel.middle_name || ""
+        } ${selectedPersonnel.last_name || ""}`
+          .replace(/\s+/g, " ")
+          .trim()
+      : "";
+
+    setNewClearance({
+      ...newClearance,
+      personnel_id: personnel_id,
+      employee_name: employeeName,
+    });
+
+    if (personnel_id) {
+      const equipment = await loadPersonnelEquipment(personnel_id);
+      setInventoryItems(equipment);
+    }
+  };
+
+  // ========= MISSING FUNCTION: cancelClearanceSubmission =========
+  const cancelClearanceSubmission = () => {
+    setShowSubmitConfirmation(false);
+    setConfirmationData(null);
+  };
+
+  // ========= MISSING FUNCTION: handleApproveSubmit =========
+  const handleApproveSubmit = async () => {
+    if (!selectedRequestForAction) return;
+
+    setShowPreloader(true);
+    setPreloaderProgress(10);
+
+    const toastId = toast.loading("Approving clearance request...", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+
+    try {
+      setPreloaderProgress(50);
+      await updateStatus(
+        selectedRequestForAction.id,
+        "Completed",
+        approveRemarks
+      );
+
+      setPreloaderProgress(100);
+      toast.update(toastId, {
+        render: "Clearance approved successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+        closeButton: true,
+      });
+
+      setShowApproveModal(false);
+      setSelectedRequestForAction(null);
+      setApproveRemarks("");
+
+      setTimeout(() => {
+        setShowPreloader(false);
+      }, 500);
+    } catch (error) {
+      setShowPreloader(false);
+      toast.update(toastId, {
+        render: `Failed to approve: ${error.message}`,
+        type: "error",
+        isLoading: false,
+        autoClose: 4000,
+        closeButton: true,
+      });
+    }
+  };
+
+  // ========= MISSING FUNCTION: handleRejectSubmit =========
+  const handleRejectSubmit = async () => {
+    if (!selectedRequestForAction || !rejectReason.trim()) {
+      toast.warning("Please enter a rejection reason.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    setShowPreloader(true);
+    setPreloaderProgress(10);
+
+    const toastId = toast.loading("Rejecting clearance request...", {
+      position: "top-right",
+    });
+
+    try {
+      setPreloaderProgress(50);
+      await updateStatus(selectedRequestForAction.id, "Rejected", rejectReason);
+
+      setPreloaderProgress(100);
+      toast.update(toastId, {
+        render: "Clearance rejected.",
+        type: "warning",
+        isLoading: false,
+        autoClose: 3000,
+        closeButton: true,
+      });
+
+      setShowRejectModal(false);
+      setSelectedRequestForAction(null);
+      setRejectReason("");
+
+      setTimeout(() => {
+        setShowPreloader(false);
+      }, 500);
+    } catch (error) {
+      setShowPreloader(false);
+      toast.update(toastId, {
+        render: `Failed to reject: ${error.message}`,
+        type: "error",
+        isLoading: false,
+        autoClose: 4000,
+        closeButton: true,
+      });
+    }
+  };
+
+  // UPDATED: Update status function with accountability check
+  const updateStatus = async (id, newStatus, remarks = "") => {
+    try {
+      setShowPreloader(true);
+      setPreloaderProgress(10);
+
+      const updateData = {
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (newStatus === "Completed") {
+        // Additional check for equipment-related clearances
+        const request = clearanceRequests.find((r) => r.id === id);
+        if (request) {
+          const isEquipmentRelated =
+            request.type === "Retirement" ||
+            request.type === "Resignation" ||
+            request.type === "Equipment Completion";
+
+          if (isEquipmentRelated) {
+            // Check accountability status
+            const { data: accountabilityData } = await supabase
+              .from("personnel_equipment_accountability_table")
+              .select("accountability_status")
+              .eq("personnel_id", request.personnel_id)
+              .eq("clearance_request_id", id)
+              .maybeSingle();
+
+            // If there's accountability record and it's not settled, warn
+            if (
+              accountabilityData &&
+              accountabilityData.accountability_status !== "SETTLED"
+            ) {
+              toast.warning(
+                "Approving clearance with unsettled accountability.",
+                {
+                  position: "top-right",
+                  autoClose: 4000,
+                }
+              );
+            }
+          }
+        }
+
+        updateData.approved_by = "Administrator";
+        updateData.approved_at = new Date().toISOString();
+        updateData.completed_at = new Date().toISOString();
+        updateData.remarks = remarks;
+
+        if (request.personnel_id) {
+          let personnelStatus = "Active";
+          if (request.type === "Retirement") personnelStatus = "Retired";
+          if (request.type === "Resignation") personnelStatus = "Resigned";
+
+          setPreloaderProgress(40);
+          await supabase
+            .from("personnel")
+            .update({
+              status: personnelStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", request.personnel_id);
+        }
+      } else if (newStatus === "Rejected") {
+        updateData.rejection_reason = remarks;
+      }
+
+      setPreloaderProgress(60);
+      const { error } = await supabase
+        .from("clearance_requests")
+        .update(updateData)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // The trigger should handle clearance_records automatically
+      setPreloaderProgress(80);
+      await loadClearanceRequests();
+
+      setPreloaderProgress(100);
+      if (newStatus === "Completed") {
+        toast.success(`Clearance request approved successfully!`, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else if (newStatus === "Rejected") {
+        toast.warning(`Clearance request rejected.`, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+
+      setTimeout(() => {
+        setShowPreloader(false);
+      }, 500);
+    } catch (err) {
+      console.error("Error updating status:", err);
+      setShowPreloader(false);
+      toast.error(`Failed to update status: ${err.message}`, {
+        position: "top-right",
+        autoClose: 4000,
+      });
+    }
+  };
+
+  const showDetails = (request) => {
+    setSelectedRequest(request);
+    setShowDetailsModal(true);
+  };
+
+  const statusToClass = (status) => {
+    return (status || "")
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace("pending-for-approval", "pendingforapproval");
+  };
+  // ========== PDF GENERATION FUNCTIONS ==========
+
+  const downloadPdfLocal = (pdfBytes, fileName) => {
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const loadPdfTemplate = async () => {
+    try {
+      // Try multiple paths for the template
+      const templatePaths = [
+        "/forms/blank-No-Money-and-Property-Accountability-Clearance.pdf",
+        "./forms/blank-No-Money-and-Property-Accountability-Clearance.pdf",
+        `${window.location.origin}/forms/blank-No-Money-and-Property-Accountability-Clearance.pdf`,
+      ];
+
+      let response = null;
+      let lastError = null;
+
+      for (const path of templatePaths) {
+        try {
+          console.log("Trying to load clearance template from:", path);
+          response = await fetch(path);
+          if (response.ok) {
+            console.log("Clearance template loaded successfully from:", path);
+            break;
+          }
+        } catch (error) {
+          lastError = error;
+          console.warn(`Failed to load from ${path}:`, error.message);
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(
+          `Failed to load PDF template from any path. Last error: ${
+            lastError?.message || "Unknown error"
+          }`
+        );
+      }
+
+      const pdfBytes = await response.arrayBuffer();
+      return pdfBytes;
+    } catch (error) {
+      console.error("Error loading PDF template:", error);
+      throw error;
+    }
+  };
+
+  const fillClearanceForm = async (pdfBytes, clearanceData) => {
+    try {
+      // Dynamically import pdf-lib
+      const pdfLib = await import("pdf-lib");
+      const { PDFDocument, rgb, StandardFonts } = pdfLib;
+
+      // Load the PDF template
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const pages = pdfDoc.getPages();
+      const firstPage = pages[0];
+
+      // Get font
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const textColor = rgb(0, 0, 0);
+
+      // Helper function for drawing text
+      const drawText = (text, x, y, size = 12) => {
+        if (text && typeof text === "string" && text.trim() !== "") {
+          firstPage.drawText(text.trim(), {
+            x,
+            y,
+            size: size,
+            font: font,
+            color: textColor,
+          });
+        }
+      };
+
+      // Format date
+      const formatDate = (dateString) => {
+        if (!dateString) return new Date().toLocaleDateString("en-PH");
+        try {
+          const date = new Date(dateString);
+          return date.toLocaleDateString("en-PH", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+        } catch (error) {
+          return dateString;
+        }
+      };
+
+      // ===== FILL THE FORM DATA =====
+
+      // Date (top right)
+      drawText(formatDate(new Date()), 580, 713, 12);
+
+      // Personnel Information
+      const personnel = clearanceData.personnel || {};
+      const fullName = `${personnel.first_name || ""} ${
+        personnel.middle_name || ""
+      } ${personnel.last_name || ""}`
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // Rank/Name
+      drawText(`${personnel.rank || ""} ${fullName}`, 188, 603, 12);
+
+      // Designation
+      drawText(
+        clearanceData.designation || personnel.designation || "N/A",
+        190,
+        580,
+        12
+      );
+
+      // Unit Assignment
+      drawText(
+        clearanceData.station || personnel.station || "N/A",
+        210,
+        560,
+        12
+      );
+
+      // Purpose (Clearance Type)
+      drawText(clearanceData.type || "Clearance", 169, 545, 12);
+
+      // Serialize the PDFDocument to bytes
+      const pdfBytesFilled = await pdfDoc.save();
+
+      console.log("Clearance PDF successfully filled");
+      return pdfBytesFilled;
+    } catch (error) {
+      console.error("Error filling clearance PDF form:", error);
+      throw error;
+    }
+  };
+
+  const generateClearancePDF = async (clearanceData, isYearly = false) => {
+    try {
+      // Load PDF template
+      const pdfBytes = await loadClearancePdfTemplate();
+
+      // Fill the form
+      const filledPdf = await fillClearanceFormEnhanced(
+        pdfBytes,
+        clearanceData,
+        {
+          isYearly,
+          generationDate: new Date().toISOString(),
+          adminUsername: clearanceData.approvedBy || "System",
+        }
+      );
+
+      return filledPdf;
+    } catch (error) {
+      console.error("Error generating clearance PDF:", error);
+      throw error;
+    }
+  };
+
+  const downloadExistingPdf = async (pdfUrl, clearanceRequest) => {
+    if (!pdfUrl) {
+      toast.warning("PDF URL not found", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(pdfUrl);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+
+      const employeeName = clearanceRequest.employee
+        .replace(/[^a-zA-Z0-9\s]/g, "")
+        .replace(/\s+/g, "_");
+      const clearanceType = clearanceRequest.type.replace(/\s+/g, "_");
+      const completionDate =
+        clearanceRequest.completed_at || new Date().toISOString().split("T")[0];
+      const fileName = `${employeeName}_${clearanceType}_Clearance_${completionDate}.pdf`;
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast.success("PDF downloaded successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast.info("Opening PDF in new tab...", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      window.open(pdfUrl, "_blank");
+    }
+  };
+
+  const generateAndUploadClearanceForm = async (clearanceRequest) => {
+    setGeneratingPdf(true);
+    setPdfDownloadForRequest(clearanceRequest.id);
+    setPdfDownloadProgress(10);
+
+    try {
+      setPdfDownloadProgress(40);
+
+      // Get complete personnel data for PDF generation
+      let personnelData = {};
+      if (clearanceRequest.personnel_id) {
+        const { data, error } = await supabase
+          .from("personnel")
+          .select("*")
+          .eq("id", clearanceRequest.personnel_id)
+          .single();
+
+        if (!error) {
+          personnelData = data;
+        }
+      }
+
+      // Combine data for PDF
+      const pdfData = {
+        ...clearanceRequest,
+        personnel: personnelData,
+        approvedBy: "Administrator", // Or get from user session
+        date: new Date().toISOString(),
+      };
+
+      // Generate PDF
+      const filledPdfBytes = await generateClearancePDF(pdfData);
+
+      // Convert ArrayBuffer to Uint8Array if needed
+      let pdfBytesForUpload;
+      if (filledPdfBytes instanceof ArrayBuffer) {
+        pdfBytesForUpload = new Uint8Array(filledPdfBytes);
+      } else if (filledPdfBytes instanceof Uint8Array) {
+        pdfBytesForUpload = filledPdfBytes;
+      } else {
+        // Try to convert
+        pdfBytesForUpload = new Uint8Array(filledPdfBytes);
+      }
+
+      // Create filename using shared function
+      const fileName = createClearancePdfFileName(
+        clearanceRequest,
+        personnelData
+      );
+
+      setPdfDownloadProgress(80);
+
+      // Download locally first
+      downloadPdf(filledPdfBytes, fileName);
+
+      setPdfDownloadProgress(85);
+
+      try {
+        // Use shared upload function - make sure we're passing Uint8Array, not ArrayBuffer
+        const uploadResult = await uploadClearanceDocumentToStorage({
+          record: {
+            ...clearanceRequest,
+            fullName: clearanceRequest.employee,
+            badgeNumber: clearanceRequest.badge_number,
+            rank: clearanceRequest.rank,
+          },
+          pdfBytes: pdfBytesForUpload, // Use Uint8Array
+          fileName,
+          isYearly: false,
+          generatedBy: "Administrator",
+        });
+
+        // Save metadata using shared function
+        await saveClearanceDocumentMetadata({
+          clearanceRequestId: clearanceRequest.id,
+          documentName: fileName,
+          fileUrl: uploadResult.fileUrl,
+          filePath: uploadResult.filePath,
+          fileSize: pdfBytesForUpload.byteLength,
+          uploadedBy: "Administrator",
+        });
+
+        toast.success("PDF generated and uploaded successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+
+        setPdfDownloadProgress(100);
+      } catch (uploadError) {
+        console.warn("Upload process error:", uploadError);
+        toast.warn("PDF downloaded locally. Cloud upload failed.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    } catch (error) {
+      console.error("Error generating clearance form:", error);
+      toast.error(`Failed to generate PDF: ${error.message}`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setTimeout(() => {
+        setGeneratingPdf(false);
+        setPdfDownloadForRequest(null);
+        setPdfDownloadProgress(0);
+      }, 1000);
+    }
+  };
+  const saveClearanceDocument = async (documentData) => {
+    try {
+      const { data, error } = await supabase
+        .from("clearance_documents")
+        .insert([
+          {
+            clearance_request_id: documentData.clearanceRequestId,
+            document_type: "CLEARANCE_FORM",
+            document_category: "Clearance Form",
+            document_name: documentData.documentName,
+            file_url: documentData.fileUrl,
+            file_path: documentData.filePath,
+            file_type: "application/pdf",
+            file_size: documentData.fileSize,
+            description: "Automatically generated clearance certificate",
+            uploaded_by: documentData.uploadedBy || "System",
+            uploaded_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error saving clearance document metadata:", error);
+        throw error;
+      }
+
+      // Update existing PDFs state
+      setExistingPdfs((prev) => ({
+        ...prev,
+        [documentData.clearanceRequestId]: [
+          ...(prev[documentData.clearanceRequestId] || []),
+          data,
+        ],
+      }));
+
+      return data;
+    } catch (error) {
+      console.error("Error in saveClearanceDocument:", error);
+      throw error;
+    }
+  };
+
+  const shouldShowApproveRejectButtons = (request) => {
+    console.log("🔍 Approve/Reject Check:", {
+      id: request.id,
+      employee: request.employee,
+      status: request.status,
+      type: request.type,
+      inspection_status: request.inspection_status,
+    });
+
+    // Normalize status for comparison
+    const normalizedStatus = (request.status || "").toLowerCase().trim();
+
+    // 1. Check if status indicates ready for approval
+    const isReadyForApproval =
+      normalizedStatus === "pending for approval" ||
+      normalizedStatus === "pendingforapproval" ||
+      (normalizedStatus.includes("pending") &&
+        normalizedStatus.includes("approval"));
+
+    if (isReadyForApproval) {
+      console.log("✅ Showing: Status indicates ready for approval");
+      return true;
+    }
+
+    // 2. For equipment-related clearances, check inspection status
+    const isEquipmentRelatedType =
+      request.type === "Retirement" ||
+      request.type === "Resignation" ||
+      request.type === "Equipment Completion";
+
+    if (isEquipmentRelatedType) {
+      const inspectionStatus = (request.inspection_status || "").toLowerCase();
+
+      // Show buttons if inspection passed or has no equipment
+      const shouldShow =
+        inspectionStatus.includes("pass") ||
+        inspectionStatus === "no equipment" ||
+        inspectionStatus === "not applicable" ||
+        inspectionStatus === "n/a" ||
+        inspectionStatus === "completed";
+
+      console.log(
+        `📊 Equipment check: type=${request.type}, inspection=${inspectionStatus}, show=${shouldShow}`
+      );
+
+      if (shouldShow) {
+        console.log("✅ Showing: Equipment inspection completed");
+        return true;
+      }
+    } else {
+      // Non-equipment clearances can be approved if status is Pending
+      if (request.status === "Pending") {
+        console.log("✅ Showing: Non-equipment clearance with Pending status");
+        return true;
+      }
+    }
+
+    console.log("❌ Not showing buttons");
+    return false;
+  };
+  const totalPages = Math.ceil(filteredRequests.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const paginatedData = filteredRequests.slice(
+    startIndex,
+    startIndex + rowsPerPage
+  );
+
+  const renderBottomPaginationButtons = () => {
+    const pageCount = Math.max(
+      1,
+      Math.ceil(filteredRequests.length / rowsPerPage)
+    );
+    const hasNoData = filteredRequests.length === 0;
+
+    const buttons = [];
+
+    buttons.push(
+      <button
+        key="prev-bottom"
+        className={`${styles.clearancePaginationBtn} ${
+          hasNoData ? styles.clearanceDisabled : ""
+        }`}
+        disabled={currentPage === 1 || hasNoData}
+        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+      >
+        Previous
+      </button>
+    );
+
+    buttons.push(
+      <button
+        key={`1-bottom`}
+        className={`${styles.clearancePaginationBtn} ${
+          1 === currentPage ? styles.clearanceActive : ""
+        } ${hasNoData ? styles.clearanceDisabled : ""}`}
+        onClick={() => setCurrentPage(1)}
+        disabled={hasNoData}
+      >
+        1
+      </button>
+    );
+
+    if (currentPage > 3) {
+      buttons.push(
+        <span
+          key="ellipsis1-bottom"
+          className={styles.clearancePaginationEllipsis}
+        >
+          ...
+        </span>
+      );
+    }
+
+    let startPage = Math.max(2, currentPage - 1);
+    let endPage = Math.min(pageCount - 1, currentPage + 1);
+
+    if (currentPage <= 3) {
+      endPage = Math.min(pageCount - 1, 4);
+    }
+
+    if (currentPage >= pageCount - 2) {
+      startPage = Math.max(2, pageCount - 3);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      if (i > 1 && i < pageCount) {
+        buttons.push(
+          <button
+            key={`${i}-bottom`}
+            className={`${styles.clearancePaginationBtn} ${
+              i === currentPage ? styles.clearanceActive : ""
+            } ${hasNoData ? styles.clearanceDisabled : ""}`}
+            onClick={() => setCurrentPage(i)}
+            disabled={hasNoData}
+          >
+            {i}
+          </button>
+        );
+      }
+    }
+
+    if (currentPage < pageCount - 2) {
+      buttons.push(
+        <span
+          key="ellipsis2-bottom"
+          className={styles.clearancePaginationEllipsis}
+        >
+          ...
+        </span>
+      );
+    }
+
+    if (pageCount > 1) {
+      buttons.push(
+        <button
+          key={`${pageCount}-bottom`}
+          className={`${styles.clearancePaginationBtn} ${
+            pageCount === currentPage ? styles.clearanceActive : ""
+          } ${hasNoData ? styles.clearanceDisabled : ""}`}
+          onClick={() => setCurrentPage(pageCount)}
+          disabled={hasNoData}
+        >
+          {pageCount}
+        </button>
+      );
+    }
+
+    buttons.push(
+      <button
+        key="next-bottom"
+        className={`${styles.clearancePaginationBtn} ${
+          hasNoData ? styles.clearanceDisabled : ""
+        }`}
+        disabled={currentPage === pageCount || hasNoData}
+        onClick={() => setCurrentPage(Math.min(pageCount, currentPage + 1))}
+      >
+        Next
+      </button>
+    );
+
+    return buttons;
+  };
+
+  const renderPaginationButtons = () => {
+    const pageCount = Math.max(
+      1,
+      Math.ceil(filteredRequests.length / rowsPerPage)
+    );
+    const hasNoData = filteredRequests.length === 0;
+
+    const buttons = [];
+
+    buttons.push(
+      <button
+        key="prev"
+        className={`${styles.clearancePaginationBtn} ${
+          hasNoData ? styles.clearanceDisabled : ""
+        }`}
+        disabled={currentPage === 1 || hasNoData}
+        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+      >
+        Previous
+      </button>
+    );
+
+    buttons.push(
+      <button
+        key={1}
+        className={`${styles.clearancePaginationBtn} ${
+          1 === currentPage ? styles.clearanceActive : ""
+        } ${hasNoData ? styles.clearanceDisabled : ""}`}
+        onClick={() => setCurrentPage(1)}
+        disabled={hasNoData}
+      >
+        1
+      </button>
+    );
+
+    if (currentPage > 3) {
+      buttons.push(
+        <span key="ellipsis1" className={styles.clearancePaginationEllipsis}>
+          ...
+        </span>
+      );
+    }
+
+    let startPage = Math.max(2, currentPage - 1);
+    let endPage = Math.min(pageCount - 1, currentPage + 1);
+
+    if (currentPage <= 3) {
+      endPage = Math.min(pageCount - 1, 4);
+    }
+
+    if (currentPage >= pageCount - 2) {
+      startPage = Math.max(2, pageCount - 3);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      if (i > 1 && i < pageCount) {
+        buttons.push(
+          <button
+            key={i}
+            className={`${styles.clearancePaginationBtn} ${
+              i === currentPage ? styles.clearanceActive : ""
+            } ${hasNoData ? styles.clearanceDisabled : ""}`}
+            onClick={() => setCurrentPage(i)}
+            disabled={hasNoData}
+          >
+            {i}
+          </button>
+        );
+      }
+    }
+
+    if (currentPage < pageCount - 2) {
+      buttons.push(
+        <span key="ellipsis2" className={styles.clearancePaginationEllipsis}>
+          ...
+        </span>
+      );
+    }
+
+    if (pageCount > 1) {
+      buttons.push(
+        <button
+          key={pageCount}
+          className={`${styles.clearancePaginationBtn} ${
+            pageCount === currentPage ? styles.clearanceActive : ""
+          } ${hasNoData ? styles.clearanceDisabled : ""}`}
+          onClick={() => setCurrentPage(pageCount)}
+          disabled={hasNoData}
+        >
+          {pageCount}
+        </button>
+      );
+    }
+
+    buttons.push(
+      <button
+        key="next"
+        className={`${styles.clearancePaginationBtn} ${
+          hasNoData ? styles.clearanceDisabled : ""
+        }`}
+        disabled={currentPage === pageCount || hasNoData}
+        onClick={() => setCurrentPage(Math.min(pageCount, currentPage + 1))}
+      >
+        Next
+      </button>
+    );
+
+    return buttons;
+  };
+  // ========= MISSING FUNCTION: deleteClearanceCascade =========
+  const deleteClearanceCascade = async (clearanceId) => {
+    try {
+      setLoading(true);
+      const toastId = toast.loading("Deleting clearance request...", {
+        position: "top-right",
+      });
+
+      // 1. Delete associated PDFs from storage
+      const { data: documents, error: docsError } = await supabase
+        .from("clearance_documents")
+        .select("file_path")
+        .eq("clearance_request_id", clearanceId);
+
+      if (!docsError && documents && documents.length > 0) {
+        const filePaths = documents.map((doc) => doc.file_path);
+
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from("clearance-documents")
+          .remove(filePaths.filter((path) => path !== null));
+
+        if (storageError) {
+          console.warn(
+            "Warning: Could not delete PDFs from storage:",
+            storageError
+          );
+        }
+      }
+
+      // 2. Delete from clearance_inventory
+      const { error: inventoryError } = await supabase
+        .from("clearance_inventory")
+        .delete()
+        .eq("clearance_request_id", clearanceId);
+
+      if (inventoryError) {
+        console.error("Error deleting clearance inventory:", inventoryError);
+        // Continue anyway
+      }
+
+      // 3. Delete from personnel_equipment_accountability_table
+      const { error: accountabilityError } = await supabase
+        .from("personnel_equipment_accountability_table")
+        .delete()
+        .eq("clearance_request_id", clearanceId);
+
+      if (accountabilityError) {
+        console.error(
+          "Error deleting accountability records:",
+          accountabilityError
+        );
+        // Continue anyway
+      }
+
+      // 4. Delete from clearance_documents
+      const { error: documentsError } = await supabase
+        .from("clearance_documents")
+        .delete()
+        .eq("clearance_request_id", clearanceId);
+
+      if (documentsError) {
+        console.error("Error deleting document metadata:", documentsError);
+        // Continue anyway
+      }
+
+      // 5. Finally delete the clearance request
+      const { error: requestError } = await supabase
+        .from("clearance_requests")
+        .delete()
+        .eq("id", clearanceId);
+
+      if (requestError) throw requestError;
+
+      // Update local state
+      setClearanceRequests((prev) =>
+        prev.filter((req) => req.id !== clearanceId)
+      );
+      setExistingPdfs((prev) => {
+        const updated = { ...prev };
+        delete updated[clearanceId];
+        return updated;
+      });
+
+      toast.update(toastId, {
+        render: "Clearance request deleted successfully",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Error deleting clearance:", error);
+      toast.error(`Failed to delete clearance: ${error.message}`, {
+        position: "top-right",
+        autoClose: 4000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========= MISSING FUNCTION: canDeleteClearance =========
+  const canDeleteClearance = (request) => {
+    // Only allow deletion if status is Pending or Rejected
+    const deletableStatuses = ["Pending", "Rejected"];
+
+    if (!deletableStatuses.includes(request.status)) {
+      return {
+        allowed: false,
+        reason: `Cannot delete clearance with status: ${request.status}`,
+      };
+    }
+
+    // Additional business rules
+    if (
+      request.inspection_status === "PASS" ||
+      request.inspection_status === "In Progress"
+    ) {
+      return {
+        allowed: false,
+        reason: "Cannot delete clearance with equipment inspection in progress",
+      };
+    }
+
+    return { allowed: true, reason: "" };
+  };
+  // Add this function to your ClearanceSystem component (or create a separate utils file)
+  const updateClearanceRequestStatus = async (clearanceRequestId) => {
+    try {
+      console.log(
+        `🔍 Checking clearance request ${clearanceRequestId} for status update...`
+      );
+
+      // Get the clearance request
+      const { data: request, error: requestError } = await supabase
+        .from("clearance_requests")
+        .select("id, personnel_id, type, status")
+        .eq("id", clearanceRequestId)
+        .single();
+
+      if (requestError) {
+        console.error("Error fetching clearance request:", requestError);
+        return;
+      }
+
+      console.log(`Current status: ${request.status}`);
+
+      // Only process if status is "In Progress" or "Pending"
+      if (request.status !== "In Progress" && request.status !== "Pending") {
+        console.log(`Skipping - status is already ${request.status}`);
+        return;
+      }
+
+      // Get all clearance_inventory records for this request
+      const { data: inventoryItems, error: inventoryError } = await supabase
+        .from("clearance_inventory")
+        .select("id, status, inspection_id")
+        .eq("clearance_request_id", clearanceRequestId);
+
+      if (inventoryError) {
+        console.error("Error fetching inventory items:", inventoryError);
+        return;
+      }
+
+      if (!inventoryItems || inventoryItems.length === 0) {
+        console.log("No inventory items found");
+        return;
+      }
+
+      // Analyze the statuses
+      const totalItems = inventoryItems.length;
+      const clearedItems = inventoryItems.filter(
+        (item) => item.status === "Cleared"
+      ).length;
+      const pendingItems = inventoryItems.filter(
+        (item) => item.status === "Pending"
+      ).length;
+      const damagedItems = inventoryItems.filter(
+        (item) => item.status === "Damaged"
+      ).length;
+      const lostItems = inventoryItems.filter(
+        (item) => item.status === "Lost"
+      ).length;
+
+      console.log(`Status analysis:`, {
+        total: totalItems,
+        cleared: clearedItems,
+        pending: pendingItems,
+        damaged: damagedItems,
+        lost: lostItems,
+      });
+
+      let newStatus = request.status;
+      let statusMessage = "";
+
+      // Determine the new status
+      if (pendingItems === 0 && damagedItems === 0 && lostItems === 0) {
+        // All items are Cleared (no damaged/lost)
+        newStatus = "Pending for Approval";
+        statusMessage = "All equipment cleared - ready for approval";
+      } else if (damagedItems > 0 || lostItems > 0) {
+        // There are damaged/lost items
+        // Check if accountability is settled
+        const { data: accountabilityData, error: accError } = await supabase
+          .from("personnel_equipment_accountability_table")
+          .select("accountability_status")
+          .eq("personnel_id", request.personnel_id)
+          .eq("clearance_request_id", clearanceRequestId)
+          .maybeSingle();
+
+        const isAccountabilitySettled =
+          accountabilityData?.accountability_status === "SETTLED";
+
+        if (isAccountabilitySettled) {
+          newStatus = "Pending for Approval";
+          statusMessage = "Accountability settled - ready for approval";
+        } else {
+          newStatus = "In Progress";
+          statusMessage = "Accountability pending for damaged/lost equipment";
+        }
+      } else if (pendingItems > 0) {
+        // Still have pending items
+        // Check if inspections are scheduled
+        const inventoryIds = inventoryItems
+          .filter((item) => item.status === "Pending")
+          .map((item) => item.id);
+
+        const { data: scheduledInspections, error: scheduleError } =
+          await supabase
+            .from("inspections")
+            .select("id")
+            .in("equipment_id", inventoryIds)
+            .eq("status", "PENDING");
+
+        const hasScheduledInspections =
+          !scheduleError &&
+          scheduledInspections &&
+          scheduledInspections.length > 0;
+
+        if (hasScheduledInspections) {
+          newStatus = "In Progress";
+          statusMessage = "Inspections scheduled - in progress";
+        } else {
+          newStatus = "Pending";
+          statusMessage = "Awaiting inspection schedule";
+        }
+      }
+
+      // Update the clearance_request if status changed
+      if (newStatus !== request.status) {
+        console.log(
+          `🔄 Updating clearance request ${clearanceRequestId}: ${request.status} → ${newStatus}`
+        );
+        console.log(`📝 Message: ${statusMessage}`);
+
+        const { error: updateError } = await supabase
+          .from("clearance_requests")
+          .update({
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+            remarks: statusMessage,
+          })
+          .eq("id", clearanceRequestId);
+
+        if (updateError) {
+          console.error(
+            "Error updating clearance request status:",
+            updateError
+          );
+        } else {
+          console.log(
+            `✅ Updated clearance request ${clearanceRequestId} to ${newStatus}`
+          );
+        }
+      } else {
+        console.log(`✅ No status change needed. Current: ${request.status}`);
+      }
+    } catch (error) {
+      console.error("Error in updateClearanceRequestStatus:", error);
+    }
+  };
+  // ========= MISSING FUNCTION: handleDeleteClearance =========
+  const handleDeleteClearance = async (request) => {
+    const { allowed, reason } = canDeleteClearance(request);
+
+    if (!allowed) {
+      toast.warning(reason, {
+        position: "top-right",
+        autoClose: 4000,
+      });
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete clearance for ${request.employee}?`
+      )
+    ) {
+      await deleteClearanceCascade(request.id);
+    }
+  };
+  // Add this function in your ClearanceSystem component
+  const syncClearanceStatuses = async () => {
+    try {
+      console.log("🔄 Syncing clearance statuses...");
+
+      const { data: clearanceRequests, error } = await supabase
+        .from("clearance_requests")
+        .select("id, personnel_id, type, status")
+        .in("status", ["Pending", "In Progress"]);
+
+      if (error) throw error;
+
+      console.log(`Found ${clearanceRequests?.length || 0} requests to sync`);
+
+      for (const request of clearanceRequests || []) {
+        await updateClearanceRequestStatus(request.id);
+      }
+
+      console.log("✅ Clearance status sync complete");
+    } catch (error) {
+      console.error("Error syncing clearance statuses:", error);
+    }
+  };
+
+  // Add this useEffect in your ClearanceSystem component, near your other useEffect hooks
+  useEffect(() => {
+    // Initial sync when component mounts
+    syncClearanceStatuses();
+
+    // Set up periodic sync
+    const interval = setInterval(() => {
+      console.log("⏰ Running periodic clearance status sync");
+      syncClearanceStatuses();
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Also add this useEffect for real-time updates
+  useEffect(() => {
+    // Subscribe to clearance_requests changes
+    const clearanceSubscription = supabase
+      .channel("clearance-requests-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "clearance_requests",
+        },
+        (payload) => {
+          console.log("Clearance request changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    // Subscribe to clearance_inventory changes
+    const inventorySubscription = supabase
+      .channel("clearance-inventory-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "clearance_inventory",
+        },
+        (payload) => {
+          console.log("Clearance inventory changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    // Subscribe to inspections changes
+    const inspectionsSubscription = supabase
+      .channel("inspections-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "inspections",
+        },
+        (payload) => {
+          console.log("Inspection changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    // Subscribe to accountability changes
+    const accountabilitySubscription = supabase
+      .channel("accountability-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "personnel_equipment_accountability_table",
+        },
+        (payload) => {
+          console.log("Accountability changed:", payload);
+          loadClearanceRequests(); // Refresh the list
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearanceSubscription.unsubscribe();
+      inventorySubscription.unsubscribe();
+      inspectionsSubscription.unsubscribe();
+      accountabilitySubscription.unsubscribe();
+    };
+  }, []);
+  return (
+    <div className={styles.clearanceSystem}>
+      <Title>Clearance System | BFP Villanueva</Title>
+      <Meta name="robots" content="noindex, nofollow" />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+
+      <BFPPreloader
+        loading={showPreloader}
+        progress={preloaderProgress}
+        moduleTitle="CLEARANCE SYSTEM • Loading Clearance Requests..."
+        onRetry={handleRetryPreloader}
+      />
+
+      <Hamburger />
+      <Sidebar />
+
+      <div className={`main-content ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        <h1>Clearance System</h1>
+
+        <div className={styles.clearanceCard}>
+          <h2>Initiate Clearance</h2>
+          <button
+            className={`${styles.clearanceShowFormBtn} ${
+              showForm ? styles.showing : ""
+            }`}
+            onClick={() => setShowForm(!showForm)}
+            disabled={loading}
+            type="button"
+          >
+            {showForm ? "Hide Form" : "Initiate Clearance"}
+          </button>
+
+          <form
+            className={`${styles.clearanceForm} ${showForm ? styles.show : ""}`}
+            onSubmit={handleClearanceSubmit}
+          >
+            <div className={styles.clearanceFormSection}>
+              <h3>Employee Information</h3>
+
+              <div className={styles.clearanceInputGroup}>
+                <select
+                  id={styles.clearanceEmployeeSelect}
+                  required
+                  value={newClearance.personnel_id}
+                  onChange={handleEmployeeChange}
+                  disabled={loading}
+                >
+                  <option value="">Select Employee</option>
+                  {personnelList.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {`${emp.first_name || ""} ${emp.middle_name || ""} ${
+                        emp.last_name || ""
+                      }`.trim()}
+                      {emp.username ? ` (@${emp.username})` : ""}
+                      {emp.badge_number ? ` (${emp.badge_number})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <h4>Select Employee</h4>
+                {newClearance.employee_name && (
+                  <div className={styles.selectedEmployee}>
+                    Selected: {newClearance.employee_name}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.clearanceFormSection}>
+              <h3>Clearance Details</h3>
+
+              <div className={styles.clearanceInputGroup}>
+                <select
+                  id={styles.clearanceTypeSelect}
+                  required
+                  value={newClearance.type}
+                  onChange={(e) =>
+                    setNewClearance((prev) => ({
+                      ...prev,
+                      type: e.target.value,
+                      equipment_ids: [],
+                    }))
+                  }
+                  disabled={loading}
+                >
+                  <option value="">Select Clearance Type</option>
+                  <option value="Resignation">Resignation</option>
+                  <option value="Retirement">Retirement</option>
+                  <option value="Equipment Completion">
+                    Equipment Completion
+                  </option>
+                  <option value="Promotion">Promotion</option>
+                  <option value="Others">Others</option>
+                </select>
+                <h4>Select Clearance Type</h4>
+                {newClearance.type === "Equipment Completion" && (
+                  <div className={styles.equipmentNotice}>
+                    <p>
+                      ✓ All assigned equipment will be automatically added for
+                      clearance
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {newClearance.type &&
+              (newClearance.type === "Resignation" ||
+                newClearance.type === "Retirement") &&
+              inventoryItems.length > 0 && (
+                <div className={styles.clearanceFormSection}>
+                  <div className={styles.equipmentNotice}>
+                    <h4>Assigned Equipment (will be automatically added)</h4>
+                    <div className={styles.equipmentListPreview}>
+                      <div className={styles.equipmentTableContainer}>
+                        <table className={styles.equipmentPreviewTable}>
+                          <thead>
+                            <tr>
+                              <th>Item Name</th>
+                              <th>Code</th>
+                              <th>Status</th>
+                              <th>Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {inventoryItems.map((item) => (
+                              <tr key={item.id}>
+                                <td>{item.item_name}</td>
+                                <td>{item.item_code}</td>
+                                <td>
+                                  <span
+                                    className={`${
+                                      styles.equipmentStatusBadge
+                                    } ${
+                                      styles[
+                                        item.status
+                                          ?.toLowerCase()
+                                          .replace(/\s+/g, "")
+                                      ] || styles.available
+                                    }`}
+                                  >
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  {item.price
+                                    ? new Intl.NumberFormat("en-PH", {
+                                        style: "currency",
+                                        currency: "PHP",
+                                      }).format(item.price)
+                                    : "₱0.00"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className={styles.equipmentSummary}>
+                        <p>
+                          <strong>Total Items:</strong>
+                          <span className={styles.totalItems}>
+                            {inventoryItems.length} item
+                            {inventoryItems.length !== 1 ? "s" : ""}
+                          </span>
+                        </p>
+                        <p>
+                          <strong>Total Value:</strong>
+                          <span className={styles.totalValue}>
+                            {new Intl.NumberFormat("en-PH", {
+                              style: "currency",
+                              currency: "PHP",
+                            }).format(
+                              inventoryItems.reduce(
+                                (sum, item) => sum + (item.price || 0),
+                                0
+                              )
+                            )}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            <div className={styles.clearanceFormActions}>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewClearance({
+                    personnel_id: "",
+                    employee_name: "",
+                    type: "",
+                    equipment_ids: [],
+                  });
+                  setInventoryItems([]);
+                }}
+                className={styles.clearanceCancelBtn}
+                disabled={loading}
+              >
+                Clear Form
+              </button>
+              <button
+                type="submit"
+                className={styles.clearanceSubmitBtn}
+                disabled={loading}
+              >
+                {loading ? "Submitting..." : "Submit Clearance"}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className={styles.clearanceFilterSearchWrapper}>
+          <div className={styles.clearanceFilterGroup}>
+            <label htmlFor="clearanceStatusFilter">Status:</label>
+            <select
+              id={styles.clearanceStatusFilter}
+              value={filters.status}
+              onChange={(e) => handleFilterChange("status", e.target.value)}
+            >
+              <option value="All">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div className={styles.clearanceFilterGroup}>
+            <label htmlFor="clearanceTypeFilter">Type:</label>
+            <select
+              id={styles.clearanceTypeFilter}
+              value={filters.type}
+              onChange={(e) => handleFilterChange("type", e.target.value)}
+            >
+              <option value="All">All Types</option>
+              <option value="Resignation">Resignation</option>
+              <option value="Retirement">Retirement</option>
+              <option value="Equipment Completion">Equipment Completion</option>
+              <option value="Promotion">Promotion</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+
+          <div className={styles.clearanceSearchGroup}>
+            <label htmlFor="clearanceSearchInput">Search:</label>
+            <input
+              type="text"
+              id={styles.clearanceSearchInput}
+              placeholder="Search by name, type, badge..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div
+          className={`${styles.clearancePaginationContainer} ${styles.clearanceTopPagination}`}
+        >
+          {renderPaginationButtons()}
+        </div>
+
+        <div className={styles.clearanceTableContainer}>
+          <table className={styles.clearanceTable}>
+            <thead>
+              <tr>
+                <th>Request Date</th>
+                <th className={styles.rankHeader}>Personnel</th>
+                <th>Badge No.</th>
+                <th>Clearance Type</th>
+                <th>Equipment</th>
+                <th>Status</th>
+                <th>Inspection</th>
+                <th>Actions</th>
+                <th>Download</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedData.length > 0 ? (
+                paginatedData.map((req) => (
+                  <tr key={req.id}>
+                    <td>{req.date || ""}</td>
+                    <td className={styles.rankCellColumn}>
+                      <div className={styles.rankCell}>
+                        {req.rank_image ? (
+                          <>
+                            <img
+                              src={req.rank_image}
+                              alt={req.rank || "Rank"}
+                              className={styles.rankImage}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = "none";
+                                const placeholder = e.target
+                                  .closest(`.${styles.rankCell}`)
+                                  ?.querySelector(`.${styles.rankPlaceholder}`);
+                                if (placeholder) {
+                                  placeholder.classList.remove(styles.hidden);
+                                }
+                              }}
+                            />
+                            <div
+                              className={`${styles.rankPlaceholder} ${
+                                req.rank_image ? styles.hidden : ""
+                              }`}
+                            >
+                              <span className={styles.rankPlaceholderText}>
+                                {req.rank?.charAt(0) || "R"}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div
+                              className={`${styles.rankPlaceholder} ${styles.show}`}
+                            >
+                              <span className={styles.rankPlaceholderText}>
+                                {req.employee?.charAt(0) || "U"}
+                              </span>
+                            </div>
+                            <img
+                              src=""
+                              alt=""
+                              className={`${styles.rankImage} ${styles.hidden}`}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = "none";
+                              }}
+                            />
+                          </>
+                        )}
+                        <span className={styles.rankText}>{req.employee}</span>
+                      </div>
+                    </td>
+                    <td>{req.badge_number || ""}</td>
+                    <td>{req.type || ""}</td>
+                    <td>
+                      {req.equipment_count > 0 ? (
+                        <div className={styles.equipmentBadge}>
+                          <span className={styles.equipmentCount}>
+                            {req.equipment_display}
+                          </span>
+                          <button
+                            className={styles.viewEquipmentBtn}
+                            onClick={() => viewEquipment(req.id)}
+                          >
+                            Show
+                          </button>
+                        </div>
+                      ) : (
+                        <span className={styles.equipmentDisplay}>
+                          {req.equipment_display}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className={`${styles.clearanceStatus} ${
+                          styles[statusToClass(req.status)]
+                        }`}
+                      >
+                        {req.status || ""}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`${styles.inspectionStatus} ${
+                          styles[
+                            (req.inspection_status || "")
+                              .toLowerCase()
+                              .replace(/\s+/g, "-")
+                              .replace("not-applicable", "notapplicable")
+                              .replace("not-yet-added", "notyetadded")
+                              .replace("in-progress", "inprogress")
+                              .replace("pass-(settled)", "passsettled")
+                              .replace(
+                                "fail-(accountability-pending)",
+                                "failaccountability"
+                              )
+                              .replace(
+                                "fail-(needs-accountability)",
+                                "failaccountability"
+                              ) || "pending"
+                          ]
+                        }`}
+                      >
+                        {req.inspection_status === "In Progress"
+                          ? "🔍 Inspection Scheduled"
+                          : req.inspection_status === "PASS (Settled)"
+                          ? "✅ PASS (Accountability Settled)"
+                          : req.inspection_status ===
+                            "FAIL (Accountability Pending)"
+                          ? "❌ FAIL - Accountability Pending"
+                          : req.inspection_status ===
+                            "FAIL (Needs Accountability)"
+                          ? "❌ FAIL - Needs Accountability"
+                          : req.inspection_status}
+
+                        {req.inspection_status === "Pending" &&
+                          req.equipment_count > 0 && (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                display: "block",
+                                color: "#666",
+                              }}
+                            >
+                              (Awaiting schedule)
+                            </span>
+                          )}
+                      </span>
+                    </td>
+                    <td className={styles.clearanceActions}>
+                      {req.status === "Pending" ||
+                      req.status === "Pending for Approval" ? (
+                        <>
+                          {shouldShowApproveRejectButtons(req) ? (
+                            <>
+                              <button
+                                id={styles.clearanceApprove}
+                                onClick={() => openApproveModal(req)}
+                                disabled={loading}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className={styles.clearanceRejects}
+                                onClick={() => openRejectModal(req)}
+                                disabled={loading}
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <span className={styles.pendingInspectionNote}>
+                              Awaiting inspection
+                            </span>
+                          )}
+                          <button
+                            className={styles.clearanceView}
+                            onClick={() => showDetails(req)}
+                          >
+                            Details
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className={styles.clearanceView}
+                          onClick={() => showDetails(req)}
+                        >
+                          View
+                        </button>
+                      )}
+                    </td>
+                    <td className={styles.downloadColumn}>
+                      {req.status === "Completed" ? (
+                        <div className={styles.downloadActions}>
+                          {existingPdfs[req.id] &&
+                          existingPdfs[req.id].length > 0 ? (
+                            <button
+                              className={styles.downloadExistingBtn}
+                              onClick={() =>
+                                downloadExistingPdf(
+                                  existingPdfs[req.id][0].file_url,
+                                  req
+                                )
+                              }
+                              title="Download existing clearance PDF"
+                            >
+                              📥 Download
+                            </button>
+                          ) : (
+                            <button
+                              className={styles.generatePdfBtn}
+                              onClick={() =>
+                                generateAndUploadClearanceForm(req)
+                              }
+                              disabled={
+                                pdfDownloadForRequest === req.id ||
+                                generatingPdf
+                              }
+                              title="Generate clearance certificate PDF"
+                            >
+                              {pdfDownloadForRequest === req.id ? (
+                                <>
+                                  <span className={styles.spinner}></span>
+                                  Generating...
+                                </>
+                              ) : (
+                                "📄 Generate"
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={styles.notAvailable}>
+                          {req.status === "Pending"
+                            ? "Pending Completion"
+                            : req.status === "In Progress"
+                            ? "In Progress"
+                            : "Not Available"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="10"
+                    style={{ textAlign: "center", padding: "40px" }}
+                  >
+                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>
+                      <span className={styles.animatedEmoji}>📜</span>
+                    </div>
+                    <h3
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "600",
+                        color: "#2b2b2b",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      No clearance documents available
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: "14px",
+                        color: "#999",
+                      }}
+                    >
+                      No clearance applications found in the system
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          className={`${styles.clearancePaginationContainer} ${styles.clearanceBottomPagination}`}
+        >
+          {renderBottomPaginationButtons()}
+        </div>
+
+        {/* Equipment Modal */}
+        {showEquipmentModal && selectedRequest && (
+          <div className={styles.equipmentModalOverlay}>
+            <div className={styles.equipmentModal}>
+              <div className={styles.equipmentModalHeader}>
+                <h3>
+                  Equipment for Clearance - {selectedRequest.employee}
+                  {selectedRequest.equipment_source === "inventory" && (
+                    <span className={styles.sourceBadge}>
+                      {" "}
+                      (From Inventory)
+                    </span>
+                  )}
+                </h3>
+                <button
+                  className={styles.clearanceCloseBtn}
+                  onClick={() => setShowEquipmentModal(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className={styles.equipmentModalBody}>
+                {equipmentLoading ? (
+                  <p>Loading equipment...</p>
+                ) : (
+                  <div className={styles.equipmentTableContainer}>
+                    <table className={styles.equipmentTable}>
+                      <thead>
+                        <tr>
+                          <th>Personnel Name</th>
+                          <th>Item Name</th>
+                          <th>Item Code</th>
+                          <th>Category</th>
+                          <th>Status</th>
+                          <th>Price</th>
+                          <th>Clearance Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedEquipment.map((item) => {
+                          // Determine badge class based on effective status
+                          const statusClass =
+                            item.clearance_status?.toLowerCase() || "pending";
+                          const hasAccountability =
+                            item.accountability_info &&
+                            item.accountability_info.length > 0;
+
+                          return (
+                            <tr key={item.id}>
+                              <td>{item.personnel_name}</td>
+                              <td>{item.name}</td>
+                              <td>{item.code}</td>
+                              <td>{item.category}</td>
+                              <td>{item.status}</td>
+                              <td>
+                                {formatPHP(item.price || item.current_value)}
+                              </td>
+                              <td>
+                                <span
+                                  className={`${styles.statusBadge} ${styles[statusClass]}`}
+                                >
+                                  {item.clearance_status}
+                                </span>
+                                {hasAccountability && (
+                                  <div
+                                    className={styles.accountabilityIndicator}
+                                  >
+                                    ⚖️ Accountability{" "}
+                                    {item.accountability_info[0]?.is_settled
+                                      ? "Settled"
+                                      : "Pending"}
+                                  </div>
+                                )}
+                              </td>
+                              <td>
+                                {/* Actions based on status */}
+                                {item.clearance_status === "Cleared" && (
+                                  <button
+                                    className={styles.clearedBtn}
+                                    disabled
+                                  >
+                                    ✅ Cleared
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View Details Modal */}
+        {showDetailsModal && selectedRequest && (
+          <div className={styles.clearanceModalOverlay}>
+            <div className={styles.clearanceModal}>
+              <div className={styles.clearanceModalContentDetails}>
+                <div className={styles.clearanceModalHeaderDetails}>
+                  <h2>Clearance Request Details</h2>
+                  <button
+                    className={styles.clearanceCloseBtnDetails}
+                    onClick={() => setShowDetailsModal(false)}
+                    type="button"
+                    aria-label="Close modal"
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                <div className={styles.clearanceModalBodyDetails}>
+                  <div className={styles.clearanceModalSectionDetails}>
+                    <h3 className={styles.clearanceModalSectionTitleDetails}>
+                      Employee Information
+                    </h3>
+                    <div className={styles.clearanceModalDetailsGridDetails}>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Name:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          {selectedRequest.employee || "N/A"}
+                        </span>
+                      </div>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Badge Number:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          {selectedRequest.badge_number || "N/A"}
+                        </span>
+                      </div>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Username:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          {selectedRequest.username || "N/A"}
+                        </span>
+                      </div>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Rank:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          {selectedRequest.rank || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.clearanceModalSectionDetails}>
+                    <h3 className={styles.clearanceModalSectionTitleDetails}>
+                      Clearance Details
+                    </h3>
+                    <div className={styles.clearanceModalDetailsGridDetails}>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Type:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          {selectedRequest.type || "N/A"}
+                        </span>
+                      </div>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Request Date:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          {selectedRequest.date || "N/A"}
+                        </span>
+                      </div>
+                      {selectedRequest.effective_date && (
+                        <div className={styles.clearanceModalDetailItemDetails}>
+                          <span className={styles.clearanceModalLabelDetails}>
+                            Effective Date:
+                          </span>
+                          <span className={styles.clearanceModalValueDetails}>
+                            {selectedRequest.effective_date}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={styles.clearanceModalSectionDetails}>
+                    <h3 className={styles.clearanceModalSectionTitleDetails}>
+                      Equipment Information
+                    </h3>
+                    <div className={styles.clearanceModalDetailsGridDetails}>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Equipment Count:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          {selectedRequest.equipment_display || "N/A"}
+                        </span>
+                      </div>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Inspection Status:
+                        </span>
+                        <span className={styles.clearanceModalValueDetails}>
+                          <span
+                            className={`${styles.inspectionStatus} ${
+                              styles[
+                                selectedRequest.inspection_status
+                                  ?.toLowerCase()
+                                  .replace(/\s+/g, "-")
+                                  .replace("not-applicable", "notapplicable")
+                                  .replace("not-yet-added", "notyetadded") ||
+                                  "pending"
+                              ]
+                            }`}
+                          >
+                            {selectedRequest.inspection_status || "N/A"}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.clearanceModalSectionDetails}>
+                    <h3 className={styles.clearanceModalSectionTitleDetails}>
+                      Request Status
+                    </h3>
+                    <div className={styles.clearanceModalDetailsGridDetails}>
+                      <div className={styles.clearanceModalDetailItemDetails}>
+                        <span className={styles.clearanceModalLabelDetails}>
+                          Status:
+                        </span>
+                        <span
+                          className={`${styles.clearanceModalValueDetails} ${
+                            styles.clearanceModalStatusDetails
+                          } ${
+                            styles[
+                              `clearance${selectedRequest.status?.replace(
+                                /\s+/g,
+                                ""
+                              )}`
+                            ]
+                          }`}
+                        >
+                          {selectedRequest.status || "N/A"}
+                        </span>
+                      </div>
+
+                      {selectedRequest.approved_by && (
+                        <div className={styles.clearanceModalDetailItemDetails}>
+                          <span className={styles.clearanceModalLabelDetails}>
+                            Approved By:
+                          </span>
+                          <span className={styles.clearanceModalValueDetails}>
+                            {selectedRequest.approved_by}
+                          </span>
+                        </div>
+                      )}
+
+                      {selectedRequest.approved_at && (
+                        <div className={styles.clearanceModalDetailItemDetails}>
+                          <span className={styles.clearanceModalLabelDetails}>
+                            Approved Date:
+                          </span>
+                          <span className={styles.clearanceModalValueDetails}>
+                            {new Date(
+                              selectedRequest.approved_at
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+
+                      {selectedRequest.rejection_reason && (
+                        <div className={styles.clearanceModalDetailItemDetails}>
+                          <span className={styles.clearanceModalLabelDetails}>
+                            Rejection Reason:
+                          </span>
+                          <span className={styles.clearanceModalValueDetails}>
+                            {selectedRequest.rejection_reason}
+                          </span>
+                        </div>
+                      )}
+
+                      {selectedRequest.remarks && (
+                        <div className={styles.clearanceModalDetailItemDetails}>
+                          <span className={styles.clearanceModalLabelDetails}>
+                            Remarks:
+                          </span>
+                          <span className={styles.clearanceModalValueDetails}>
+                            {selectedRequest.remarks}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedRequest.status === "Completed" && (
+                    <div className={styles.clearanceModalSectionDetails}>
+                      <h3 className={styles.clearanceModalSectionTitleDetails}>
+                        Document
+                      </h3>
+                      <div className={styles.clearanceModalDetailsGridDetails}>
+                        <div className={styles.clearanceModalDetailItemDetails}>
+                          <span className={styles.clearanceModalLabelDetails}>
+                            PDF Certificate:
+                          </span>
+                          <span className={styles.clearanceModalValueDetails}>
+                            {existingPdfs[selectedRequest.id] &&
+                            existingPdfs[selectedRequest.id].length > 0 ? (
+                              <button
+                                className={styles.downloadModalBtn}
+                                onClick={() =>
+                                  downloadExistingPdf(
+                                    existingPdfs[selectedRequest.id][0]
+                                      .file_url,
+                                    selectedRequest
+                                  )
+                                }
+                              >
+                                📥 Download Certificate
+                              </button>
+                            ) : (
+                              <button
+                                className={styles.generateModalBtn}
+                                onClick={() => {
+                                  setShowDetailsModal(false);
+                                  generateAndUploadClearanceForm(
+                                    selectedRequest
+                                  );
+                                }}
+                                disabled={generatingPdf}
+                              >
+                                {generatingPdf
+                                  ? "Generating..."
+                                  : "📄 Generate Certificate"}
+                              </button>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PDF Progress Overlay */}
+        {generatingPdf && (
+          <div className={styles.pdfProgressOverlay}>
+            <div className={styles.pdfProgressModal}>
+              <h3>Generating Clearance Form PDF</h3>
+              <div className={styles.pdfProgressBar}>
+                <div
+                  className={styles.pdfProgressFill}
+                  style={{ width: `${pdfDownloadProgress}%` }}
+                ></div>
+              </div>
+              <p>{pdfDownloadProgress}% Complete</p>
+              <p className={styles.pdfProgressNote}>
+                Please wait while we generate your clearance form...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Clearance Submission Confirmation Modal */}
+        {showSubmitConfirmation && confirmationData && (
+          <div className={styles.clearanceConfirmationModalOverlay}>
+            <div className={styles.clearanceConfirmationModal}>
+              <div className={styles.clearanceConfirmationHeader}>
+                <h2>Confirm Clearance Request</h2>
+                <button
+                  className={styles.clearanceConfirmationCloseBtn}
+                  onClick={cancelClearanceSubmission}
+                  disabled={submissionLoading}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className={styles.clearanceConfirmationBody}>
+                <div className={styles.clearanceConfirmationIcon}>📝</div>
+                <p className={styles.clearanceConfirmationText}>
+                  Are you sure you want to initiate a clearance request for
+                </p>
+                <p className={styles.clearanceEmployeeNameHighlight}>
+                  "{confirmationData.employeeName}"?
+                </p>
+
+                <div className={styles.clearanceConfirmationDetails}>
+                  <p>
+                    <strong>Clearance Type:</strong> {confirmationData.type}
+                  </p>
+                  <p>
+                    <strong>Equipment Count:</strong>{" "}
+                    {confirmationData.equipmentCount} item(s)
+                  </p>
+                  <p>
+                    <strong>Total Equipment Value:</strong>{" "}
+                    {new Intl.NumberFormat("en-PH", {
+                      style: "currency",
+                      currency: "PHP",
+                    }).format(confirmationData.totalValue)}
+                  </p>
+
+                  {confirmationData.equipmentCount > 0 && (
+                    <div className={styles.clearanceEquipmentSummary}>
+                      <h4>Equipment Details:</h4>
+                      <div className={styles.clearanceEquipmentList}>
+                        <p>
+                          <strong>Total Equipment Value:</strong>{" "}
+                          {new Intl.NumberFormat("en-PH", {
+                            style: "currency",
+                            currency: "PHP",
+                          }).format(confirmationData.totalValue)}
+                        </p>
+
+                        {confirmationData.equipmentList
+                          .slice(0, 5)
+                          .map((item, index) => (
+                            <div
+                              key={index}
+                              className={styles.clearanceEquipmentItem}
+                            >
+                              <span>
+                                {item.item_name} ({item.item_code})
+                              </span>
+                              <span>
+                                {new Intl.NumberFormat("en-PH", {
+                                  style: "currency",
+                                  currency: "PHP",
+                                }).format(item.price || 0)}
+                              </span>
+                            </div>
+                          ))}
+                        {confirmationData.equipmentCount > 5 && (
+                          <div className={styles.clearanceEquipmentItem}>
+                            <span>
+                              ...and {confirmationData.equipmentCount - 5} more
+                              items
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <p className={styles.clearanceConfirmationNote}>
+                  {confirmationData.equipmentCount > 0
+                    ? "This equipment will be automatically added to the clearance process."
+                    : "No equipment found for this personnel."}
+                </p>
+              </div>
+
+              <div className={styles.clearanceConfirmationActions}>
+                <button
+                  className={styles.clearanceConfirmationCancelBtn}
+                  onClick={cancelClearanceSubmission}
+                  disabled={submissionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.clearanceConfirmationSubmitBtn}
+                  onClick={confirmClearanceSubmission}
+                  disabled={submissionLoading}
+                >
+                  {submissionLoading ? (
+                    <>
+                      <span className={styles.submissionSpinner}></span>
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Clearance"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Approve Modal */}
+        {showApproveModal && (
+          <div className={styles.approveRejectModalOverlay}>
+            <div className={styles.approveRejectModal}>
+              <div className={styles.approveRejectModalHeader}>
+                <h3>Approve Clearance Request</h3>
+                <button onClick={() => setShowApproveModal(false)}>
+                  &times;
+                </button>
+              </div>
+              <div className={styles.approveRejectModalBody}>
+                <p>Are you sure you want to approve this clearance request?</p>
+                <p>
+                  <strong>Employee:</strong>{" "}
+                  {selectedRequestForAction?.employee}
+                </p>
+                <p>
+                  <strong>Type:</strong> {selectedRequestForAction?.type}
+                </p>
+                <p>
+                  <strong>Status:</strong> {selectedRequestForAction?.status}
+                </p>
+
+                <div className={styles.approveRejectInputGroup}>
+                  <label htmlFor="approveRemarks">
+                    Approval Remarks (Optional):
+                  </label>
+                  <textarea
+                    id="approveRemarks"
+                    value={approveRemarks}
+                    onChange={(e) => setApproveRemarks(e.target.value)}
+                    placeholder="Enter any remarks or comments..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className={styles.approveRejectModalFooter}>
+                <button
+                  className={styles.approveRejectCancelBtn}
+                  onClick={() => setShowApproveModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.approveRejectConfirmBtn}
+                  onClick={handleApproveSubmit}
+                  disabled={loading}
+                >
+                  {loading ? "Approving..." : "Confirm Approval"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reject Modal */}
+        {showRejectModal && (
+          <div className={styles.approveRejectModalOverlay}>
+            <div className={styles.approveRejectModal}>
+              <div className={styles.approveRejectModalHeader}>
+                <h3>Reject Clearance Request</h3>
+                <button onClick={() => setShowRejectModal(false)}>
+                  &times;
+                </button>
+              </div>
+              <div className={styles.approveRejectModalBody}>
+                <p>Are you sure you want to reject this clearance request?</p>
+                <p>
+                  <strong>Employee:</strong>{" "}
+                  {selectedRequestForAction?.employee}
+                </p>
+                <p>
+                  <strong>Type:</strong> {selectedRequestForAction?.type}
+                </p>
+                <p>
+                  <strong>Status:</strong> {selectedRequestForAction?.status}
+                </p>
+
+                <div className={styles.approveRejectInputGroup}>
+                  <label htmlFor="rejectReason">Rejection Reason *</label>
+                  <textarea
+                    id="rejectReason"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Please provide a reason for rejection..."
+                    rows={3}
+                    required
+                  />
+                </div>
+              </div>
+              <div className={styles.approveRejectModalFooter}>
+                <button
+                  className={styles.approveRejectCancelBtn}
+                  onClick={() => setShowRejectModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.approveRejectConfirmBtn}
+                  onClick={handleRejectSubmit}
+                  disabled={loading || !rejectReason.trim()}
+                  style={{
+                    background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                  }}
+                >
+                  {loading ? "Rejecting..." : "Confirm Rejection"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ClearanceSystem;

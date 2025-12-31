@@ -1,0 +1,854 @@
+/* ================================
+  GLOBAL CSS VARIABLES (Matching AdminDashboard)
+=============================== */
+:root {
+  --bg-main: #b1b1b1;
+  --bg-secondary: #bbbbbb;
+  --text-primary: #020202;
+  --text-secondary: #ffffff;
+  --bg-buttons: #1060af;
+  --bg-buttons_active: #529ae1;
+  --bg-cards: #526f8c;
+  --hover-glow: linear-gradient(90deg, #fbbd11 0%, #ffda66 50%, #fbbd11 100%);
+  --hover-row: #81a4cd;
+  --bg-approved: #07e33b;
+  --bg-pending: #eab209;
+  --bg-reject: #ff0404;
+  --accent: #505050;
+  --accent-hover: #8c8c8c;
+  --border: #e5dada;
+}
+
+[data-theme="dark"] {
+  --bg-main: #264462;
+  --bg-secondary: #840032;
+  --text-primary: #ffffff;
+  --text-secondary: #e59500;
+  --accent: #505050;
+  --accent-hover: #8c8c8c;
+  --border: #e5dada;
+}
+
+/* ================================
+  TRAINING MANAGEMENT LAYOUT
+=============================== */
+.TSAppContainer {
+  min-height: 100vh;
+  background: var(--bg-main);
+  padding: 20px;
+}
+
+/* ===== TITLE ===== */
+.TSTitle {
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 25px 0;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* ===== TOP CONTROLS ===== */
+.TSTopControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 30px 0;
+  padding: 0 10px;
+}
+
+.TSTableHeader {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+/* Filter and Search Controls */
+.TSFilterType,
+.TSSearchBar {
+  padding: 10px 15px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.TSFilterType:hover,
+.TSSearchBar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+}
+
+.TSFilterType:focus,
+.TSSearchBar:focus {
+  border-color: var(--bg-buttons);
+  box-shadow: 0 0 0 3px rgba(16, 96, 175, 0.3);
+}
+
+.TSFilterType {
+  min-width: 160px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23505050'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.TSSearchBar {
+  width: 280px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23505050'><path d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left 15px center;
+  background-size: 16px;
+  padding-left: 45px;
+}
+
+/* ===== SUMMARY CARDS (Matching AdminDashboard stat-cards) ===== */
+.TSSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 30px 0;
+}
+
+.TSSummaryCard {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.TSSummaryCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(16, 95, 175, 0.4);
+}
+
+.TSSummaryCard.TSActive {
+  border: 2px solid var(--bg-buttons);
+  transform: translateY(-6px) scale(1.05);
+}
+
+.TSSummaryCard h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.TSSummaryCard p {
+  font-size: 2.5em;
+  font-weight: bold;
+  margin: 0;
+  color: var(--bg-buttons);
+}
+
+/* Card Background Colors */
+.TSTotal {
+  background: linear-gradient(135deg, rgba(16, 96, 175, 0.9), rgba(82, 154, 225, 0.9));
+}
+
+.TSPending {
+  background: linear-gradient(135deg, rgba(234, 178, 9, 0.9), rgba(255, 218, 102, 0.9));
+}
+
+.TSCompleted {
+  background: linear-gradient(135deg, rgba(7, 227, 59, 0.9), rgba(129, 199, 132, 0.9));
+}
+
+.TSOngoing {
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(100, 181, 246, 0.9));
+}
+
+.TSCancelled {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.9), rgba(229, 115, 115, 0.9));
+}
+
+/* Active state colors - make text white */
+.TSSummaryCard.TSActive h3,
+.TSSummaryCard.TSActive p {
+  color: white;
+}
+
+/* ===== ADD BUTTON ===== */
+.TSAddBtn {
+  padding: 12px 28px;
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  margin: 20px 0 30px 0;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.TSAddBtn:hover {
+  background: var(--bg-buttons_active);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(16, 95, 175, 0.4);
+}
+
+/* ===== TABLE CONTAINER ===== */
+.TSTableContainer {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 20px;
+}
+
+/* ===== TABLE STYLES ===== */
+.TSTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  text-align: center;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.TSTable thead tr {
+  background: var(--bg-buttons);
+}
+
+.TSTable th {
+  padding: 16px 20px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 2px solid var(--border);
+}
+
+.TSTable tbody td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: all 0.25s ease;
+}
+
+/* Row hover effects matching AdminDashboard */
+.TSTable tbody tr {
+  transition: all 0.25s ease;
+}
+
+.TSTable tbody tr:hover {
+  background: var(--hover-row);
+  transform: translateX(5px);
+}
+
+.TSTable tbody tr:hover td {
+  color: var(--text-secondary);
+}
+
+/* ===== STATUS STYLES (Matching AdminDashboard) ===== */
+.TSStatus {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+  min-width: 100px;
+}
+
+.pending {
+  background: rgba(234, 178, 9, 0.15);
+  color: #856404;
+  border: 1px solid rgba(234, 178, 9, 0.3);
+}
+
+.completed {
+  background: rgba(7, 227, 59, 0.15);
+  color: #0c5460;
+  border: 1px solid rgba(7, 227, 59, 0.3);
+}
+
+.ongoing {
+  background: rgba(33, 150, 243, 0.15);
+  color: #4a235a;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.cancelled {
+  background: rgba(244, 67, 54, 0.15);
+  color: #721c24;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* ===== ACTION BUTTONS ===== */
+.TSActionBtn {
+  padding: 8px 16px;
+  margin: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  min-width: 80px;
+}
+
+.TSEditBtn {
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+}
+
+.TSEditBtn:hover {
+  background: var(--bg-buttons_active);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.TSDeleteBtn {
+  background: var(--bg-reject);
+  color: var(--text-secondary);
+}
+
+.TSDeleteBtn:hover {
+  background: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== CERTIFICATE CELL ===== */
+.certificateCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.certificateBtn {
+  background: var(--bg-cards);
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.certificateBtn:hover {
+  background: var(--accent);
+  transform: translateY(-1px);
+}
+
+.noCertificate {
+  color: var(--accent);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.certificateInfo small {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+/* ===== FORM CARD & MODAL (Matching AdminDashboard Design) ===== */
+.TSFormCard {
+  position: fixed;
+  top: 0;
+  right: -450px;
+  width: 420px;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 0;
+  border-radius: 0;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+  transition: right 0.4s ease;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+}
+
+.TSFormCard.TSActive {
+  right: 0;
+}
+
+.TSFormHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  margin-bottom: 0;
+}
+
+.TSFormHeader h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.TSCloseBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 34px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.TSCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+/* Form Content */
+.TSFormCard form {
+  padding: 25px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.TSFormSection {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+}
+
+.TSFormSection h3 {
+  margin: 0 0 15px 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.TSFormRow {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.TSFormRow .TSFormGroup {
+  flex: 1;
+}
+
+.TSFormGroup label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  display: block;
+  font-size: 13px;
+}
+
+.TSFormGroup input,
+.TSFormGroup select {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background-color: white;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.TSFormGroup input:focus,
+.TSFormGroup select:focus {
+  border-color: var(--bg-buttons);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 96, 175, 0.1);
+}
+
+.TSReadOnlyInput {
+  background-color: rgba(248, 249, 250, 0.7) !important;
+  color: var(--accent) !important;
+  border-color: var(--border) !important;
+  cursor: not-allowed;
+}
+
+/* File Upload */
+.fileUpload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fileUploadLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--bg-buttons);
+  font-weight: 600;
+}
+
+.fileUpload input[type="file"] {
+  padding: 8px;
+  border: 2px dashed var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.currentFile {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(82, 111, 140, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid var(--bg-cards);
+}
+
+/* Progress Bar */
+.progressBarContainer {
+  margin: 15px 0;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  height: 20px;
+}
+
+.progressBar {
+  background: linear-gradient(90deg, var(--bg-buttons), var(--bg-buttons_active));
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  transition: width 0.3s ease;
+}
+
+/* Error Message */
+.errorMessage {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: var(--bg-reject);
+  padding: 12px;
+  border-radius: 6px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+
+/* Form Actions */
+.TSFormActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.TSSaveBtn {
+  padding: 12px 24px;
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 140px;
+}
+
+.TSSaveBtn:hover {
+  background: var(--bg-buttons_active);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 95, 175, 0.4);
+}
+
+.TSCancelBtn {
+  padding: 12px 24px;
+  background: var(--accent);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.TSCancelBtn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+/* ===== MODAL OVERLAY ===== */
+.TSModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
+  backdrop-filter: blur(5px);
+}
+
+.TSModalContent {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.TSModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+.TSModalHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* ===== PAGINATION STYLES (Matching AdminDashboard) ===== */
+.TSPaginationContainer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0;
+  padding-right: 10px;
+  position: relative;
+  z-index: 5;
+}
+
+.TSPaginationBtn {
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px 10px;
+  margin-left: 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 36px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.TSPaginationBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  transform: scale(1.15);
+}
+
+.TSPaginationBtn.TSActive {
+  background: var(--bg-buttons_active);
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: scale(1.15);
+}
+
+.TSPaginationBtn:disabled,
+.TSPaginationBtn.TSDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.TSPaginationEllipsis {
+  padding: 6px 8px;
+  margin: 0 4px;
+  color: var(--bg-buttons);
+  font-weight: bold;
+  user-select: none;
+}
+
+/* Pagination click animation */
+@keyframes clickPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+
+.TSPaginationBtn:active:not(:disabled) {
+  animation: clickPop 0.25s ease;
+}
+
+/* ===== NO DATA STATE ===== */
+.TSNoRequestsTable {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  border: 2px dashed var(--border);
+  margin: 20px 0;
+}
+
+.TSNoRequestsTable h3 {
+  margin: 0 0 10px 0;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.TSNoRequestsTable p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+/* ===== LOADING STATE ===== */
+.TSLoading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+  .TSSummary {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+  }
+  
+  .TSTopControls {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .TSTableHeader {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .TSFilterType,
+  .TSSearchBar {
+    width: 48%;
+  }
+  
+  .TSTable {
+    font-size: 13px;
+  }
+  
+  .TSTable th,
+  .TSTable td {
+    padding: 12px 10px;
+  }
+  
+  .TSPaginationContainer {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .TSFormCard {
+    width: 100%;
+    right: -100%;
+  }
+  
+  .TSModalContent {
+    width: 95%;
+  }
+}
+
+@media (max-width: 480px) {
+  .TSAppContainer {
+    padding: 10px;
+  }
+  
+  .TSTitle {
+    font-size: 1.5rem;
+  }
+  
+  .TSSummary {
+    grid-template-columns: 1fr;
+  }
+  
+  .TSTableHeader {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .TSFilterType,
+  .TSSearchBar {
+    width: 100%;
+  }
+  
+  .TSTable {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .TSActionBtn {
+    min-width: 60px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .TSPaginationBtn {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-width: 32px;
+  }
+}

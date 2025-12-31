@@ -1,0 +1,763 @@
+/* ================================
+  GLOBAL CSS VARIABLES
+=============================== */
+:root {
+  --bg-main: #b1b1b1;
+  --bg-secondary: #bbbbbb;
+  --text-primary: #020202;
+  --text-secondary: #ffffff;
+  --bg-buttons: #1060af;
+  --bg-buttons_active: #529ae1;
+  --bg-cards: #526f8c;
+  --hover-glow: linear-gradient(90deg, #fbbd11 0%, #ffda66 50%, #fbbd11 100%);
+  --hover-row: #81a4cd;
+  --bg-approved: #07e33b;
+  --bg-pending: #eab209;
+  --bg-reject: #ff0404;
+  --accent: #505050;
+  --accent-hover: #8c8c8c;
+  --border: #e5dada;
+}
+
+[data-theme="dark"] {
+  --bg-main: #264462;
+  --bg-secondary: #840032;
+  --text-primary: #ffffff;
+  --text-secondary: #e59500;
+  --accent: #505050;
+  --accent-hover: #8c8c8c;
+  --border: #e5dada;
+}
+
+/* ================================
+  DASHBOARD CONTENT STYLES
+=============================== */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 30px 0;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-card h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stat-number {
+  font-size: 2.5em;
+  font-weight: bold;
+  margin: 0;
+  color: #1060af;
+}
+
+.stat-schedule-date {
+  font-size: 0.9em;
+  font-weight: bold;
+  margin: 0;
+  color: #1060af;
+}
+
+.recent-activity {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 30px;
+}
+
+.recent-activity h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.5em;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateX(5px);
+}
+
+.activity-time {
+  font-weight: bold;
+  color: #1060af;
+  min-width: 80px;
+}
+
+.activity-text {
+  color: #333;
+  flex: 1;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  font-size: 32px;
+  margin-right: 15px;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.personnel-icon {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.leave-icon {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.clearance-icon {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.inventory-icon {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-card h3 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.stat-number {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-subtitle {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #888;
+}
+
+.stat-info {
+  color: #666;
+}
+
+.stat-alert {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff4444;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.loading-dots {
+  color: #999;
+  font-style: italic;
+}
+
+.loading-dots:after {
+  content: "...";
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%,
+  20% {
+    content: "";
+  }
+  40% {
+    content: ".";
+  }
+  60% {
+    content: "..";
+  }
+  80%,
+  100% {
+    content: "...";
+  }
+}
+
+.error-text {
+  color: #ff4444;
+}
+
+.detailed-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-detail {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.stat-detail h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.stat-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breakdown-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.breakdown-value {
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.loading-text {
+  color: #666;
+  font-style: italic;
+  margin: 0;
+}
+
+.recent-activity {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.activity-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.activity-timestamp {
+  font-size: 12px;
+  color: #888;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 4px;
+  background: #f8f9fa;
+}
+
+.activity-item.highlight {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #666;
+  min-width: 70px;
+  margin-right: 15px;
+}
+
+.activity-text {
+  flex: 1;
+  color: #333;
+}
+
+/* Add to your CSS file */
+.stat-icon.schedule-icon {
+  background-color: #e8f5e9; /* Light green background */
+  color: #2e7d32; /* Dark green color */
+}
+
+/* Add to your CSS file */
+.activity-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  position: relative;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.activity-icon {
+  font-size: 16px;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.activity-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.activity-timestamp {
+  font-size: 11px;
+  color: #888;
+  font-family: monospace;
+}
+
+.no-activity {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+}
+
+.activity-loading,
+.activity-error {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+/* Add to your CSS file */
+.activity-subheader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.activity-info {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.activity-type {
+  font-size: 10px;
+  background-color: #f0f0f0;
+  color: #666;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+  text-transform: capitalize;
+}
+
+.activity-time-container {
+  display: flex;
+  align-items: center;
+}
+
+.activity-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.activity-icon {
+  font-size: 16px;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.activity-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.activity-timestamp {
+  font-size: 11px;
+  color: #888;
+  font-family: monospace;
+}
+
+.no-activity {
+  text-align: center;
+  color: #999;
+  padding: 30px 20px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.activity-loading,
+.activity-error {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+/* Add some hover effects */
+.activity-item:hover {
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.activity-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+/* ================================
+   PAGINATION STYLES (Matching Leave Management)
+================================ */
+
+/* Top pagination container */
+.activity-top-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0;
+  padding-right: 10px;
+  position: relative;
+  z-index: 5;
+}
+
+/* Bottom pagination container */
+.activity-bottom-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin: 20px 0 10px 0;
+  padding-right: 10px;
+  position: relative;
+  z-index: 5;
+}
+
+/* Pagination button styles (matching leave management) */
+.activity-pagination-btn {
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px 10px;
+  margin-left: 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 36px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.activity-pagination-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  transform: scale(1.15);
+}
+
+.activity-pagination-btn.activity-active {
+  background: #74B1EF;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: scale(1.15);
+}
+
+.activity-pagination-btn.activity-disabled,
+.activity-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.activity-pagination-btn.activity-disabled:hover,
+.activity-pagination-btn:disabled:hover {
+  color: var(--text-secondary) !important;
+  transform: none !important;
+}
+
+/* Ellipsis styling */
+.activity-pagination-ellipsis {
+  padding: 6px 8px;
+  margin: 0 4px;
+  color: #085CB1;
+  font-weight: bold;
+  user-select: none;
+}
+
+/* Activity counter styling */
+.activity-counter {
+  text-align: center;
+  margin-top: 10px;
+  padding: 8px;
+  color: #666;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.activity-counter-text {
+  background: #f8f9fa;
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  display: inline-block;
+}
+
+/* Animation for clicked state */
+@keyframes activityClickPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+
+/* Clicked state animation */
+.activity-pagination-btn:active:not(:disabled) {
+  animation: activityClickPop 0.25s ease;
+}
+
+/* ================================
+   LOADING AND ERROR STATES
+================================ */
+.activity-loading,
+.activity-error {
+  text-align: center;
+  color: #666;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #e9ecef;
+}
+
+.activity-loading .loading-dots:after {
+  content: "...";
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: ""; }
+  40% { content: "."; }
+  60% { content: ".."; }
+  80%, 100% { content: "..."; }
+}
+
+/* No activities state */
+.no-activity {
+  text-align: center;
+  color: #666;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+  margin: 20px 0;
+}
+
+/* Error text styling */
+.error-text {
+  color: #ff4444;
+  font-weight: 500;
+}
+
+/* ================================
+   RESPONSIVE ADJUSTMENTS
+================================ */
+@media (max-width: 768px) {
+  .activity-top-pagination,
+  .activity-bottom-pagination {
+    justify-content: center;
+    padding-right: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+  }
+  
+  .activity-pagination-btn {
+    margin: 2px;
+    padding: 5px 10px;
+    font-size: 12px;
+    min-width: 32px;
+  }
+  
+  .activity-counter-text {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .activity-pagination-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-width: 28px;
+  }
+  
+  .activity-pagination-ellipsis {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+}
+
+/* ================================
+  CRITICAL FIXES FOR SIDEBAR
+=============================== */
+
+/* Ensure sidebar is properly fixed */
+.sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 280px !important;
+  height: 100vh !important;
+  z-index: 1000 !important;
+  transition: width 0.4s ease !important;
+  background: rgb(219, 219, 219) !important;
+  overflow-y: auto !important;
+}
+
+/* Collapsed state */
+.sidebar.collapsed {
+  width: 100px !important;
+}
+
+/* Main content positioning */
+.main-content {
+  position: relative !important;
+  margin-left: 280px !important;
+  width: calc(100% - 280px) !important;
+  transition: margin-left 0.4s ease !important;
+  z-index: 1 !important;
+}
+
+.main-content.collapsed {
+  margin-left: 100px !important;
+  width: calc(100% - 100px) !important;
+}
+
+/* Dropdown containment */
+.dropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  width: 100% !important;
+  z-index: 100 !important;
+}
+
+/* Tooltip positioning for collapsed sidebar */
+.sidebar.collapsed .dropdown-tooltip {
+  position: fixed !important;
+  left: 100px !important;
+  top: auto !important;
+  z-index: 1100 !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%) !important;
+  }
+  
+  .sidebar:not(.collapsed) {
+    transform: translateX(0) !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}

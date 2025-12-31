@@ -1,0 +1,659 @@
+/* ===== BFP PRELOADER STYLES ===== */
+.preloaderOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.preloaderContainer {
+  text-align: center;
+  color: white;
+}
+
+/* ===== ENHANCED BFP LOGO ANIMATION ===== */
+.bfpLogo {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 30px;
+}
+
+.bfpLogoInner {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  animation: rotate 3s linear infinite;
+}
+
+/* Red fire circle */
+.bfpLogoInner::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff4444 0%, #ff0000 70%, #cc0000 100%);
+  box-shadow: 
+    0 0 30px rgba(255, 0, 0, 0.7),
+    inset 0 0 20px rgba(255, 100, 100, 0.5);
+  animation: firePulse 2s ease-in-out infinite;
+  z-index: 2;
+}
+
+/* Yellow spinning ring */
+.bfpLogoInner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: 8px solid transparent;
+  border-top-color: #ff004c;
+  border-right-color: rgba(255, 204, 0, 0.7);
+  border-bottom-color: #ff004c;
+  border-left-color: rgba(255, 204, 0, 0.7);
+  box-shadow: 
+    0 0 20px rgba(165, 133, 2, 0.5),
+    inset 0 0 20px rgba(255, 204, 0, 0.2);
+  animation: spin 2s linear infinite;
+  z-index: 1;
+}
+
+/* Outer glow ring */
+.bfpLogo::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 204, 0, 0.3);
+  box-shadow: 
+    0 0 30px rgba(255, 204, 0, 0.4),
+    inset 0 0 30px rgba(255, 204, 0, 0.2);
+  animation: glowPulse 3s ease-in-out infinite;
+  z-index: 0;
+}
+
+/* BFP Text Animation */
+.bfpText {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #ffcc00, #ff4444, #ffcc00);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShine 2s ease-in-out infinite alternate;
+}
+
+.bfpSubtitle {
+  font-size: 1rem;
+  opacity: 0.8;
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+}
+
+/* Progress Bar */
+.progressContainer {
+  width: 300px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+}
+
+.progressBar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ffcc00, #ff4444);
+  border-radius: 2px;
+  animation: progressLoad 2s ease-in-out infinite;
+}
+
+/* Fire Animation */
+.fireAnimation {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+
+.fireParticle {
+  width: 12px;
+  height: 12px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: fire 1.5s ease-in-out infinite;
+}
+
+.fireParticle:nth-child(2) {
+  animation-delay: 0.2s;
+  background: #ff8800;
+}
+
+.fireParticle:nth-child(3) {
+  animation-delay: 0.4s;
+  background: #ffcc00;
+}
+
+/* Loading Text */
+.loadingText {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-top: 20px;
+  font-style: italic;
+}
+
+/* Fade Out Animation */
+.fadeOut {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* ===== OFFLINE MODE STYLES ===== */
+.preloaderOverlay.offlineMode {
+  background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+}
+
+.offlineIcon {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.wifiSignal {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.wifiArc {
+  position: absolute;
+  border: 4px solid #ecf0f1;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: wifiPulse 2s ease-in-out infinite;
+}
+
+.wifiArc:nth-child(1) {
+  width: 120px;
+  height: 120px;
+  border-width: 4px;
+  animation-delay: 0.1s;
+  opacity: 0.3;
+}
+
+.wifiArc:nth-child(2) {
+  width: 80px;
+  height: 80px;
+  top: 20px;
+  left: 20px;
+  border-width: 4px;
+  animation-delay: 0.2s;
+  opacity: 0.5;
+}
+
+.wifiArc:nth-child(3) {
+  width: 40px;
+  height: 40px;
+  top: 40px;
+  left: 40px;
+  border-width: 4px;
+  animation-delay: 0.3s;
+  opacity: 0.7;
+}
+
+.wifiCross {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.wifiCross::before,
+.wifiCross::after {
+  content: '';
+  position: absolute;
+  background: #e74c3c;
+  border-radius: 2px;
+}
+
+.wifiCross::before {
+  width: 80px;
+  height: 8px;
+  top: 56px;
+  left: 20px;
+  transform: rotate(45deg);
+  animation: crossPulse 1.5s ease-in-out infinite;
+}
+
+.wifiCross::after {
+  width: 80px;
+  height: 8px;
+  top: 56px;
+  left: 20px;
+  transform: rotate(-45deg);
+  animation: crossPulse 1.5s ease-in-out infinite 0.2s;
+}
+
+.offlinePulse {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border: 2px solid rgba(231, 76, 60, 0.3);
+  border-radius: 50%;
+  animation: offlinePulse 2s ease-out infinite;
+}
+
+.offlineSubtitle {
+  font-size: 1rem;
+  margin-bottom: 25px;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.offlineBadge {
+  background: #e74c3c;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+.connectionStatus {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 20px auto;
+  max-width: 400px;
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.statusDot {
+  width: 12px;
+  height: 12px;
+  background: #e74c3c;
+  border-radius: 50%;
+  animation: statusBlink 1s infinite;
+}
+
+.statusMessage {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.connectionBars {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 60px;
+  gap: 6px;
+  margin: 25px 0;
+}
+
+.signalBar {
+  width: 12px;
+  background: linear-gradient(to top, #3498db, #2ecc71);
+  border-radius: 3px 3px 0 0;
+  animation: signalScan 1.5s ease-in-out infinite;
+}
+
+.signalBar:nth-child(1) { height: 15px; animation-delay: 0.1s; }
+.signalBar:nth-child(2) { height: 25px; animation-delay: 0.2s; }
+.signalBar:nth-child(3) { height: 35px; animation-delay: 0.3s; }
+.signalBar:nth-child(4) { height: 25px; animation-delay: 0.4s; }
+.signalBar:nth-child(5) { height: 15px; animation-delay: 0.5s; }
+
+.offlineActions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin: 25px 0;
+}
+
+.retryButton {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.retryButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9, #1c5a80);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.retryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkNetworkButton {
+  background: transparent;
+  color: #3498db;
+  border: 2px solid #3498db;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.checkNetworkButton:hover {
+  background: rgba(52, 152, 219, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Network Tips */
+.networkTips {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 20px auto;
+  max-width: 400px;
+  text-align: left;
+}
+
+.tipTitle {
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: #3498db;
+}
+
+.tipList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.tipList li {
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+}
+
+.tipList li:before {
+  content: "•";
+  color: #2ecc71;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+/* Last Check Time */
+.lastCheck {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  margin-top: 15px;
+  font-style: italic;
+}
+
+/* ===== ENHANCED STYLES ===== */
+/* Weak Connection State */
+.weakConnection {
+  background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+  animation: weakConnectionPulse 3s infinite;
+}
+
+@keyframes weakConnectionPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.95; }
+}
+
+/* Retry Counter */
+.retryCounter {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Connection Quality */
+.connectionQuality {
+  margin: 20px auto;
+  max-width: 300px;
+}
+
+.qualityMeter {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.qualityBar {
+  height: 100%;
+  background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.qualityLabel {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  text-align: center;
+  display: block;
+}
+
+/* Testing Spinner */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spinLoader 0.6s linear infinite;
+  margin-right: 8px;
+}
+
+.retryButton.testing {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ===== ALL ANIMATIONS ===== */
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes firePulse {
+  0%, 100% { 
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 
+      0 0 30px rgba(255, 0, 0, 0.7),
+      inset 0 0 20px rgba(255, 100, 100, 0.5);
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 
+      0 0 40px rgba(255, 0, 0, 0.9),
+      inset 0 0 25px rgba(255, 100, 100, 0.7);
+  }
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { 
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+@keyframes textShine {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes progressLoad {
+  0% {
+    width: 0%;
+    transform: translateX(-100%);
+  }
+  50% {
+    width: 100%;
+    transform: translateX(0%);
+  }
+  100% {
+    width: 0%;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fire {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+@keyframes wifiPulse {
+  0%, 100% {
+    border-color: #ecf0f1;
+    border-top-color: transparent;
+    opacity: 0.3;
+  }
+  50% {
+    border-color: #3498db;
+    border-top-color: transparent;
+    opacity: 0.8;
+  }
+}
+
+@keyframes crossPulse {
+  0%, 100% {
+    background: #e74c3c;
+    transform: rotate(45deg) scale(1);
+  }
+  50% {
+    background: #ff6b6b;
+    transform: rotate(45deg) scale(1.1);
+  }
+}
+
+@keyframes offlinePulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+    border-color: rgba(231, 76, 60, 0.3);
+  }
+  70% {
+    transform: scale(1.2);
+    opacity: 0;
+    border-color: rgba(231, 76, 60, 0.1);
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    background: #e74c3c;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+  }
+  50% {
+    background: #ff6b6b;
+    box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+  }
+}
+
+@keyframes statusBlink {
+  0%, 100% {
+    background: #e74c3c;
+    box-shadow: 0 0 10px #e74c3c;
+  }
+  50% {
+    background: #ff6b6b;
+    box-shadow: 0 0 20px #e74c3c;
+  }
+}
+
+@keyframes signalScan {
+  0%, 100% {
+    opacity: 0.3;
+    background: linear-gradient(to top, #3498db, #2ecc71);
+  }
+  50% {
+    opacity: 1;
+    background: linear-gradient(to top, #2ecc71, #3498db);
+  }
+}
+
+@keyframes spinLoader {
+  to { transform: rotate(360deg); }
+}
+

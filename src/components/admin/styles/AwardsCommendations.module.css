@@ -1,0 +1,460 @@
+/* ACSAwardsCommendations.module.css */
+
+.ACSAppContainer {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+
+.animatedEmoji {
+  display: inline-block;
+  animation: bounceUpDown 2s ease-in-out infinite;
+}
+
+@keyframes bounceUpDown {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+/* Filter and Search Controls */
+.ACSFilterType,
+.ACSSearchBar {
+  padding: 8px 12px;
+  margin-left: 5px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.456);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.25s ease;
+  width: 130px;
+}
+
+.ACSFilterType:hover,
+.ACSSearchBar:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+}
+
+.ACSFilterType:focus,
+.ACSSearchBar:focus {
+  border-color: #3e76e6;
+  box-shadow: 0 0 0 3px rgba(62, 118, 230, 0.3);
+}
+
+.ACSFilterType {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24'><path fill='%23848484' d='M7 10l5 5 5-5H7z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  padding-right: 32px;
+}
+
+/* Top Controls */
+.ACSTopControls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 20px;
+  gap: 15px;
+  margin-top: -5px;
+}
+
+.ACSTableHeader {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.ACSTableHeader select,
+.ACSTableHeader input {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.ACSTableHeader input {
+  width: 250px;
+}
+
+.ACSTableHeader select:focus,
+.ACSTableHeader input:focus {
+  border-color: #1060af;
+  box-shadow: 0 0 6px rgba(16, 96, 175, 0.2);
+}
+
+/* Summary Cards */
+.ACSSummary {
+  display: flex;
+  gap: 20px;
+  margin: 20px;
+  flex-wrap: wrap;
+}
+
+.ACSSummaryCard {
+  flex: 1;
+  min-width: 150px;
+  padding: 20px;
+  border-radius: 12px;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.ACSSummaryCard:hover {
+  transform: translateY(-4px);
+}
+
+.ACSSummaryCard.ACSActive {
+  border: 3px solid #fff;
+  transform: translateY(-6px) scale(1.05);
+}
+
+.ACSTotal {
+  background: linear-gradient(135deg, #1060af, #529ae1);
+}
+
+.ACSMedal {
+  background: linear-gradient(135deg, #FFD700, #FFEC8B);
+}
+
+.ACSCommendation {
+  background: linear-gradient(135deg, #4caf50, #81c784);
+}
+
+.ACSCertificate {
+  background: linear-gradient(135deg, #ff9800, #ffb74d);
+}
+
+.ACSRibbon {
+  background: linear-gradient(135deg, #9c27b0, #ba68c8);
+}
+
+.ACSBadge {
+  background: linear-gradient(135deg, #00bcd4, #4dd0e1);
+}
+
+.ACSSummaryCard h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ACSSummaryCard p {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Table Container */
+.ACSTableContainer {
+  width: 100%;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* Table Styles */
+.ACSTable {
+  width: 105%;
+  padding: 20px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  margin-left: -25px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  text-align: center;
+  position: relative;
+  top: 0vh;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+}
+
+.ACSTable thead tr {
+  background: #529ae1;
+}
+
+.ACSTable th {
+  padding: 14px 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #000000;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.ACSTable tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #000000;
+  color: #333;
+  transition: background 0.25s ease;
+}
+
+/* Alternate row colors */
+.ACSTable tbody tr:nth-child(even) td {
+  background: #81878c;
+  color: var(--text-secondary);
+}
+
+.ACSTable tbody tr:nth-child(even):hover td {
+  background: var(--accent);
+}
+
+.ACSTable tbody tr:nth-child(odd) td {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.ACSTable tbody tr:nth-child(odd):hover td {
+  background: var(--accent);
+}
+
+/* Row hover effects */
+.ACSTable tbody tr {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.ACSTable tbody tr:hover {
+  background: #549ee9;
+  color: #fff;
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 4px 8px rgba(33, 17, 17, 0.914), 0 8px 16px rgba(0, 0, 0, 0.1);
+  z-index: 5;
+  position: relative;
+}
+
+.ACSTable tbody tr:hover td {
+  background: #549ee9 !important;
+  color: #fff;
+}
+
+/* Status Styles */
+.ACSStatus {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+.medal {
+  background: #fff9c4;
+  color: #f57f17;
+}
+
+.commendation {
+  background: #d1edff;
+  color: #0c5460;
+}
+
+.certificate {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.ribbon {
+  background: #e1d5f5;
+  color: #4a235a;
+}
+
+.badge {
+  background: #d1f5f5;
+  color: #0c6254;
+}
+
+.general {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* Download Link */
+.ACSDownloadLink {
+  color: #1060af;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #e3f2fd;
+}
+
+.ACSDownloadLink:hover {
+  color: #0d4d8c;
+  background: #bbdefb;
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* No Awards Table */
+.ACSNoAwardsTable {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.ACSNoAwardsTable h3 {
+  margin: 0 0 10px 0;
+  color: #495057;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.ACSNoAwardsTable p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+/* Pagination Styles */
+.ACSPaginationContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+  padding-right: 0px;
+  position: relative;
+  left: 15px;
+}
+
+.ACSPaginationBtn {
+  background: #1060af;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 40px;
+}
+
+.ACSPaginationBtn:hover:not(:disabled) {
+  background: #1060af;
+  transform: scale(1.05);
+}
+
+.ACSPaginationBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  transform: none;
+}
+
+.ACSPaginationBtn.ACSActive {
+  background: #74B1EF;
+  pointer-events: none;
+  transform: scale(1.05);
+}
+
+.ACSPaginationEllipsis {
+  padding: 8px 8px;
+  color: #666;
+  font-weight: bold;
+}
+
+.ACSPaginationBtn.ACSDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.ACSPaginationBtn.ACSDisabled:hover {
+  color: white !important;
+  transform: none !important;
+}
+
+.ACSPaginationBtn.ACSActive.ACSDisabled {
+  background: #74B1EF;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Loading State */
+.ACSLoading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: var(--text-primary, #333);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ACSMainContent {
+    margin-left: 0;
+    padding: 20px 10px;
+  }
+
+  .ACSTopControls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .ACSTableHeader {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .ACSSummary {
+    flex-direction: column;
+  }
+
+  .ACSSummaryCard {
+    min-width: auto;
+  }
+
+  .ACSTable {
+    font-size: 12px;
+  }
+
+  .ACSTable th,
+  .ACSTable td {
+    padding: 10px 8px;
+  }
+
+  .ACSPaginationContainer {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .ACSTable {
+    font-size: 11px;
+  }
+
+  .ACSTable th,
+  .ACSTable td {
+    padding: 8px 6px;
+  }
+
+  .ACSStatus {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .ACSDownloadLink {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}

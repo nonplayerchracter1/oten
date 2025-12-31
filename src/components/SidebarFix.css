@@ -1,0 +1,199 @@
+/* ================================
+  SIDEBAR LAYOUT FIX - NO OVERLAP
+=============================== */
+
+/* IMPORTANT: Reset conflicting styles */
+.sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 280px !important;
+  background: rgb(219, 219, 219) !important;
+  color: var(--text-primary, #020202) !important;
+  padding: 70px 10px 20px 10px !important;
+  z-index: 1000 !important; /* Lower than hamburger but higher than main content */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4) !important;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform: translateX(0) !important;
+}
+
+/* Collapsed sidebar */
+.sidebar.collapsed {
+  width: 100px !important;
+  padding: 70px 5px 20px 5px !important;
+}
+
+/* ================================
+  MAIN CONTENT FIX - NO OVERLAP
+=============================== */
+.main-content {
+  position: relative !important;
+  margin-left: 280px !important; /* Matches sidebar width */
+  padding: 28px 20px !important;
+  min-height: 100vh !important;
+  background: var(--bg-main, #b1b1b1) !important;
+  width: calc(100% - 280px) !important; /* Calculate remaining space */
+  transition: margin-left 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 1 !important; /* Lower than sidebar */
+  overflow-x: hidden !important;
+}
+
+.main-content.collapsed {
+  margin-left: 100px !important;
+  width: calc(100% - 100px) !important;
+}
+
+/* ================================
+  DROPDOWN CONTAINMENT FIX
+=============================== */
+.dropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  width: 100% !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  background: rgba(156, 156, 156, 0.2) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  transform: translateY(-10px) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 100 !important; /* Lower than sidebar */
+  pointer-events: none !important;
+}
+
+.dropdown-section:hover .dropdown-content,
+.dropdown-content.show {
+  max-height: 500px !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  padding: 8px 0 !important;
+  pointer-events: auto !important;
+}
+
+/* ================================
+  TOOLTIP FIX FOR COLLAPSED SIDEBAR
+=============================== */
+.dropdown-tooltip {
+  position: fixed !important;
+  z-index: 1100 !important; /* Higher than sidebar but lower than hamburger */
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+  animation: fadeIn 0.2s ease !important;
+  overflow: hidden !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  pointer-events: auto !important;
+}
+
+/* ================================
+  Z-INDEX HIERARCHY FIX
+=============================== */
+.hamburger { z-index: 1110 !important; }
+.dropdown-tooltip { z-index: 1100 !important; }
+.sidebar { z-index: 1000 !important; }
+.dropdown-content { z-index: 100 !important; }
+.main-content { z-index: 1 !important; }
+
+/* ================================
+  RESPONSIVE FIXES
+=============================== */
+@media (max-width: 768px) {
+  /* Mobile: sidebar becomes overlay */
+  .sidebar {
+    transform: translateX(-100%) !important;
+    width: 280px !important;
+    z-index: 1000 !important;
+  }
+  
+  .sidebar:not(.collapsed) {
+    transform: translateX(0) !important;
+  }
+  
+  /* Mobile: main content takes full width */
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 70px 15px 15px !important;
+  }
+  
+  .main-content.collapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Mobile overlay */
+  .overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 999 !important;
+    display: none !important;
+  }
+  
+  .sidebar:not(.collapsed) + .overlay {
+    display: block !important;
+  }
+}
+
+/* ================================
+  FIX FOR SIDEBAR INNER CONTENT
+=============================== */
+.sidebar-inner {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 5px !important;
+}
+
+/* ================================
+  REMOVE CONFLICTING POSITIONING
+=============================== */
+/* Remove any fixed/absolute positioning that might cause overlap */
+.sidebar .dropdown-content,
+.sidebar.collapsed .dropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+}
+
+/* ================================
+  IMPORTANT: CLEAR LAYOUT CONFLICTS
+=============================== */
+.admin-dashboard {
+  position: relative !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+}
+
+/* Remove any conflicting transforms */
+.sidebar,
+.main-content {
+  transform: none !important;
+}
+
+/* Ensure sidebar doesn't affect document flow */
+.sidebar {
+  height: 100vh !important;
+}
+
+/* Prevent body overflow */
+body {
+  overflow-x: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}

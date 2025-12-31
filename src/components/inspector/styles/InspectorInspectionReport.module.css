@@ -1,0 +1,1246 @@
+/* InspectorInspectionReport.module.css - Matching InspectorInventoryControl */
+
+
+/* Add to your InspectorInspectionReport.module.css */
+
+.equipmentActions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.returnBtn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.returnBtn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+}
+
+.settledBadge {
+  background: #dcfce7;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Update the modal table to accommodate the new column */
+.IIRModalTable th:nth-child(7),
+.IIRModalTable td:nth-child(7) {
+  width: 120px;
+  text-align: center;
+}
+
+
+
+/* Top Controls - Matching InspectorInventoryControl */
+.IIRTopControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.IIRTableHeader {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 15px 0;
+}
+
+.IIRFilterCategory,
+.IIRFilterStatus,
+.IIRSearchBar {
+  padding: 8px 12px;
+  margin-left: 5px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.IIRFilterCategory:hover,
+.IIRFilterStatus:hover,
+.IIRSearchBar:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+}
+
+.IIRFilterCategory:focus,
+.IIRFilterStatus:focus,
+.IIRSearchBar:focus {
+  border-color: #3e76e6;
+  box-shadow: 0 0 0 3px rgba(62, 118, 230, 0.3);
+}
+
+.IIRSearchBar {
+  width: 250px;
+}
+
+.IIRFilterCategory,
+.IIRFilterStatus {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'><path fill='%23848484' d='M7 10l5 5 5-5H7z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  padding-right: 32px;
+}
+
+/* Summary Cards - Matching InspectorInventoryControl */
+.IIRSummary {
+  display: flex;
+  gap: 20px;
+  margin: 20px;
+  flex-wrap: wrap;
+}
+
+.IIRSummaryCard {
+  flex: 1;
+  min-width: 150px;
+  padding: 30px;
+  border-radius: 12px;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.IIRSummaryCard h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.IIRSummaryCard p {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.IIRSummaryCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+}
+
+.IIRTotal {
+  background: linear-gradient(135deg, #1060af, #529ae1);
+}
+
+.IIRUnsettled {
+  background: linear-gradient(135deg, #dc3545, #e83e8c);
+}
+
+.IIRSettled {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.IIRValue {
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.IIRActive {
+  border: 3px solid #ffffff00!important;
+  transform: scale(1.0) !important;
+}
+
+/* Table Header Section */
+.IIRTableHeaderSection {
+  margin-top: 30px;
+  margin-bottom: 10px;
+}
+
+.IIRSHeaders {
+  margin: 1px 0;
+  padding-left: 10px;
+  border-left: 4px solid #085CB1;
+  color: black;
+}
+
+/* Pagination - Matching InspectorInventoryControl */
+.IIRPaginationContainer {
+  display: flex;
+  position: relative;
+  align-items: center;
+  top:25px;
+  justify-content: flex-end;
+  margin-bottom: 5px;
+  padding-right: 0px;
+}
+
+.IIRPaginationContainer.IIRTopPagination {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  gap: 10px;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  height: 100px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.IIRPaginationContainer.IIRBottomPagination {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  top: -10px;
+  gap: 10px;
+}
+
+.IIRPaginationBtn {
+  background: #1060af;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.IIRPaginationBtn:hover:not(:disabled) {
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.IIRPaginationBtn:disabled,
+.IIRPaginationBtn.IIRDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.IIRPaginationBtn.IIRActive {
+  background: #74b1ef;
+  color: #fff;
+  pointer-events: none;
+  transform: scale(1.15);
+}
+
+.IIRPaginationEllipsis {
+  padding: 6px 8px;
+  color: #666;
+  font-weight: bold;
+}
+
+/* Table Container - Matching InspectorInventoryControl */
+.IIRTableScrollContainer {
+  width: 101%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  background: #fff;
+  position: relative;
+  margin-left: -3px;
+  margin-bottom: 20px;
+}
+
+.IIRTableScrollContainer::-webkit-scrollbar {
+  height: 10px;
+}
+
+.IIRTableScrollContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 0 0 10px 10px;
+}
+
+.IIRTableScrollContainer::-webkit-scrollbar-thumb {
+  background: #529ae1;
+  border-radius: 10px;
+}
+
+.IIRTableScrollContainer::-webkit-scrollbar-thumb:hover {
+  background: #1060af;
+}
+
+/* Table Styling - Matching InspectorInventoryControl */
+.IIRTable {
+  width: auto;
+  min-width: 2000px; /* Adjust based on your column count */
+  padding: 20px;
+  border-collapse:separate;
+  border-spacing: 0;
+  font-size: 14px;
+  margin-left: 0;
+  background: #fff;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: none;
+}
+
+.IIRTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.IIRTable th {
+  padding: 14px 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: rgb(0, 0, 0);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #529ae1;
+  border-bottom: 3px solid #ddd;
+}
+
+.IIRTable tbody td {
+  padding: 14px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.595);
+  color: #333;
+  transition: background 0.25s ease;
+}
+
+/* Alternate row colors */
+.IIRTable tbody tr:nth-child(odd) td {
+  background: #ffffff;
+}
+
+.IIRTable tbody tr:nth-child(even) td {
+  background: #81878c;
+}
+
+/* Row hover effects */
+.IIRTable tbody tr {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.IIRTable tbody tr:hover {
+  background: #549ee9;
+  color: #fff;
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 4px 8px rgba(33, 17, 17, 0.914), 0 8px 16px rgba(0, 0, 0, 0.1);
+  z-index: 5;
+  position: relative;
+}
+
+.IIRTable tbody tr:hover td {
+  background: #549ee9 !important;
+  color: white;
+}
+
+/* Column width specifications */
+.IIRTable th:nth-child(1),
+.IIRTable td:nth-child(1) {
+  width: 120px; /* Rank */
+  min-width: 120px;
+}
+
+.IIRTable th:nth-child(2),
+.IIRTable td:nth-child(2) {
+  width: 200px; /* Personnel Name */
+  min-width: 200px;
+}
+
+.IIRTable th:nth-child(3),
+.IIRTable td:nth-child(3) {
+  width: 150px; /* Clearance Type */
+  min-width: 150px;
+}
+
+.IIRTable th:nth-child(4),
+.IIRTable td:nth-child(4) {
+  width: 140px; /* Request Date */
+  min-width: 140px;
+}
+
+.IIRTable th:nth-child(5),
+.IIRTable td:nth-child(5) {
+  width: 130px; /* Status */
+  min-width: 130px;
+}
+
+.IIRTable th:nth-child(6),
+.IIRTable td:nth-child(6) {
+  width: 180px; /* Missing Equipment */
+  min-width: 180px;
+}
+
+.IIRTable th:nth-child(7),
+.IIRTable td:nth-child(7) {
+  width: 150px; /* Total Value */
+  min-width: 150px;
+}
+
+.IIRTable th:nth-child(8),
+.IIRTable td:nth-child(8) {
+  width: 200px; /* Findings */
+  min-width: 200px;
+}
+
+.IIRTable th:nth-child(9),
+.IIRTable td:nth-child(9) {
+  width: 200px; /* Actions */
+  min-width: 200px;
+}
+
+/* Status Badges - Matching InspectorInventoryControl */
+.IIRStatusBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.IIRStatusUnsettled {
+  background-color: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.IIRStatusSettled {
+  background-color: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+}
+
+.IIRStatusPending {
+  background-color: #ffc107;
+  color: #212529;
+  border: 1px solid #ffc107;
+}
+
+.IIRStatusInProgress {
+  background-color: #17a2b8;
+  color: white;
+  border: 1px solid #17a2b8;
+}
+
+.IIRStatusCompleted {
+  background-color: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+}
+
+.IIRStatusRejected {
+  background-color: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.IIRStatusMissing {
+  background-color: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.IIRStatusDamaged {
+  background-color: #ffc107;
+  color: #212529;
+  border: 1px solid #ffc107;
+}
+
+.IIRStatusDefault {
+  background-color: #6c757d;
+  color: white;
+  border: 1px solid #6c757d;
+}
+
+/* Badge Number */
+.IIRBadgeNumber {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  margin-top: 2px;
+}
+
+.IIRTable tbody tr:hover .IIRBadgeNumber {
+  color: white;
+}
+
+/* Missing Section */
+.IIRMissingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+
+.IIRMissingCount {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.IIRNoMissing {
+  color: #28a745;
+  font-weight: 500;
+}
+
+/* Price Display */
+.IIRTotalPrice {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.IIRNoPrice {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.IIRTable tbody tr:hover .IIRTotalPrice,
+.IIRTable tbody tr:hover .IIRNoPrice {
+  color: white;
+}
+
+/* Findings Preview */
+.IIRFindingsPreview {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #666;
+  margin: 0 auto;
+}
+
+.IIRTable tbody tr:hover .IIRFindingsPreview {
+  color: white;
+}
+
+/* Action Buttons */
+.IIRActionButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.IIRBtn {
+  padding: 8px 16px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-transform: none;
+}
+
+.IIRBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.IIRViewDetailsBtn {
+  background-color: #007bff;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.IIRViewDetailsBtn:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.IIRShowMissingBtn {
+  background-color: #17a2b8;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.IIRShowMissingBtn:hover {
+  background-color: #138496;
+}
+
+.IIRApproveBtn {
+  background-color: #28a745;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.IIRApproveBtn:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.IIRCloseBtn {
+  background-color: #6c757d;
+}
+
+.IIRCloseBtn:hover {
+  background-color: #5a6268;
+}
+
+/* Table Footer */
+.IIRTableFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 10px;
+}
+
+.IIRResultsInfo {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.IIRTotalMissing {
+  font-size: 16px;
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* View Modal - Matching InspectorInventoryControl */
+.IIRViewModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  display: flex;
+}
+
+.IIRViewModalContent {
+  background-color: white;
+  border-radius: 8px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.IIRViewModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.IIRViewModalTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.IIRViewModalCloseBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  line-height: 1;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.IIRViewModalCloseBtn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.IIRViewModalBody {
+  padding: 20px;
+}
+
+.IIRViewModalSection {
+  margin-bottom: 25px;
+}
+
+.IIRViewModalSection:last-child {
+  margin-bottom: 0;
+}
+
+.IIRViewModalSectionTitle {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 8px;
+}
+
+.IIRViewModalGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.IIRViewModalField {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.IIRViewModalField label {
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.IIRViewModalField span {
+  color: #333;
+  font-size: 15px;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+}
+
+.IIRViewModalFullWidth {
+  width: 100%;
+}
+
+.IIRViewModalTextContent {
+  color: #333;
+  font-size: 15px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  min-height: 60px;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.IIRViewModalActions {
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background-color: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+/* Modal Table */
+.IIRModalTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.IIRModalTable th,
+.IIRModalTable td {
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  text-align: left;
+}
+
+.IIRModalTable th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.IIRModalTable tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+/* Loading Container */
+.IIRLoadingContainer {
+  text-align: center;
+  padding: 60px;
+  color: #6c757d;
+}
+
+.IIRLoadingContainer h2 {
+  margin-bottom: 10px;
+  color: #495057;
+}
+
+/* Animated Emoji */
+.IIRAnimatedEmoji {
+  display: inline-block;
+  animation: bounceUpDown 2s ease-in-out infinite;
+}
+
+@keyframes bounceUpDown {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .IIRSummary {
+    flex-direction: column;
+    margin: 10px;
+  }
+  
+  .IIRSummaryCard {
+    min-width: 100%;
+  }
+  
+  .IIRTableHeader {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  
+  .IIRFilterCategory,
+  .IIRFilterStatus,
+  .IIRSearchBar {
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  .IIRTableScrollContainer {
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  .IIRViewModalContent {
+    max-width: 95%;
+    margin: 10px;
+  }
+  
+  .IIRViewModalGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .IIRViewModalTitle {
+    font-size: 1.2rem;
+  }
+  
+  .IIRPaginationContainer {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .IIRPaginationBtn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .IIRActionButtons {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .IIRBtn {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .IIRTableFooter {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+
+/* Add to InspectorInspectionReport.module.css */
+.combinedAccountabilityBadge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.sourceBreakdown {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.routineBadge {
+  background: #3b82f6;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.clearanceBadge {
+  background: #8b5cf6;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.totalAmountHighlight {
+  color: #dc2626;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* Add these to your existing CSS file */
+
+/* Combined Accountability Indicators */
+.combinedAccountabilityBadge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.sourceBreakdown {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.routineBadge {
+  background: #3b82f6;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.clearanceBadge {
+  background: #8b5cf6;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.equipmentSourceSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.routineDot, .clearanceDot {
+  font-size: 12px;
+}
+
+.sourceCount {
+  color: #666;
+  font-size: 10px;
+}
+
+.amountBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.amountDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10px;
+}
+
+.routineAmount, .clearanceAmount {
+  color: #666;
+}
+
+.routineAmount::before {
+  content: "• ";
+  color: #3b82f6;
+}
+
+.clearanceAmount::before {
+  content: "• ";
+  color: #8b5cf6;
+}
+
+.combinedInfoHeader {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.routineIndicator::before,
+.clearanceIndicator::before,
+.combinedIndicator::before {
+  margin-right: 4px;
+}
+
+.routineIndicator::before {
+  content: "🔵";
+}
+
+.clearanceIndicator::before {
+  content: "🟣";
+}
+
+.combinedIndicator::before {
+  content: "⚡";
+}
+
+/* Modal Styles for Combined Accountability */
+.combinedModalBadge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.routineSectionHeader,
+.clearanceSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.routineSectionHeader::before {
+  content: "🔵";
+}
+
+.clearanceSectionHeader::before {
+  content: "🟣";
+}
+
+.sourceTotal {
+  text-align: right;
+  padding-right: 20px;
+}
+
+.sourceTotalAmount {
+  font-weight: bold;
+  color: #dc3545;
+}
+
+.routineValue {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.clearanceValue {
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+.combinedType {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.combinedCount {
+  color: #f59e0b;
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.clearanceTypesDisplay {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.multipleTypesBadge {
+  background-color: #ff6b6b;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+/* Clearance Types Display Styles */
+.clearanceTypesDisplay {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.multipleTypesBadge {
+  background-color: #ff6b6b;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.clearanceTypesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.clearanceTypeTag {
+  background-color: #e9ecef;
+  color: #495057;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  border: 1px solid #dee2e6;
+  white-space: nowrap;
+}/* Rank Cell Styles */
+.rankCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.rankImage {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+.rankTextWithImage {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.rankText {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Personnel Info Cell Styles */
+.personnelInfoCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.personnelNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.personnelFullName {
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.rankBadge {
+  background-color: #3498db;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Personnel details in modals */
+.personnelDetails {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.personnelDetailsImage {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #e9ecef;
+}
+
+.personnelDetailsInfo {
+  flex: 1;
+}
+
+.personnelDetailsName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.personnelDetailsRank {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.modalRankImage {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 3px;
+}

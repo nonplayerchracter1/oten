@@ -1,0 +1,4047 @@
+/* Rank Image Styles for Clearance Table */
+.rankHeader {
+  min-width: 150px !important;
+}
+
+.rankCellColumn {
+  padding: 8px 12px !important;
+  vertical-align: middle !important;
+}
+
+.rankCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.rankImage {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #52b1e1;
+  transition: all 0.3s ease;
+}
+
+.rankImage.hidden {
+  display: none;
+}
+
+.rankPlaceholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #529ae1, #1060af);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #529ae1;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.rankPlaceholder.show {
+  display: flex !important;
+}
+
+.rankPlaceholder.hidden {
+  display: none !important;
+}
+
+.rankPlaceholderText {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.rankText {
+  flex: 1;
+  min-width: 80px;
+  font-size: 14px;
+  color: #333;
+  word-break: break-word;
+}
+
+/* Adjust table row height to accommodate rank images */
+.clearanceTable tbody tr td {
+  vertical-align: middle;
+  padding: 12px 8px !important;
+}
+
+/* Ensure the employee name column has enough width */
+.clearanceTable th:nth-child(2),
+.clearanceTable td:nth-child(2) {
+  min-width: 180px;
+}
+
+
+/* Enhanced toggle button styles */
+.clearanceActionsBtn {
+  background: linear-gradient(135deg, #1060af, #529ae1);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.clearanceActionsBtn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
+}
+
+.clearanceActionsBtn:focus:not(:active)::after {
+  animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  20% {
+    transform: scale(25, 25);
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(40, 40);
+  }
+}
+
+.clearanceActionsBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.clearanceActionsBtn:active {
+  transform: translateY(0);
+}
+
+/* Sidebar animation improvements */
+.clearanceRightSidebar {
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.sidebarVisible {
+  transform: translateX(0);
+}
+
+
+/* ================================
+   TABLE STYLES
+=============================== */
+.clearanceTable {
+   width: 101%;
+  padding: 20px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  margin-left: -7px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  text-align: center;
+position: relative;
+top: -1vh;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+}
+
+.clearanceTable thead tr {
+  background: var(--bg-header);
+}
+
+.clearanceTable thead td {
+  border-bottom: 3px solid var(--border);
+}
+
+.clearanceTable th {
+  padding: 14px 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+  position: sticky;
+  top: 0;
+  
+  background: #529ae1;
+}
+
+/*.clearanceTable tbody td {
+  padding: 14px 16px;
+  background: var(--bg-main);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.585);
+  color: var(--text-primary);
+  transition: background 0.25s ease;
+}
+ Status specific styles */
+
+
+/* Optional: Background colors for better visibility */
+.clearanceStatus {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}.clearanceModalStatusDetails.clearancePending {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: white!important;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+
+}
+.clearanceStatus.pending {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: white!important;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+
+}
+
+.inspectionStatus.notapplicable {
+  background: linear-gradient(135deg, #7a7a79, #aca8a8) !important;
+  color: white;
+
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+
+}
+/* Add to your ClearanceSystem.module.css */
+.passsettled {
+  background-color: #d1fae5;
+  color: #065f46;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.failaccountability {
+  background-color: #fee2e2;
+  color: #991b1b;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.inprogress {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.inspectionStatus.notyetadded {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+  background: linear-gradient(135deg, #ff8b4d, #fea035) !important;
+  color: white;
+
+}
+/* Add to ClearanceSystem.module.css */
+.clearanceStatus.pendingforapproval {
+  background-color: #3b82f6;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.clearanceStatus.in-progress {
+  background-color: #f59e0b;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.clearanceStatus.rejected {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: white!important;
+
+}
+.clearanceModalStatusDetails.clearanceRejected {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: white;
+
+}
+.clearanceStatus.completed,
+.clearanceStatus.approved {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white!important;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+
+}
+.inspectionStatus.no-equipment {
+  background-color: #ffffff;
+  border: 1px solid #f44336;
+  color: #f44336;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+
+.inspectionStatus.in-progress {
+  background: linear-gradient(135deg, #568dd0, #0069af) ;
+  color: white;
+
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+.inspectionInProgressNote {
+  background: linear-gradient(135deg, #568dd0, #0069af) ;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+.inspectionFailedNote{
+    background: linear-gradient(135deg, #f7aa25, #da6205) ;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+.clearanceModalStatusDetails.clearanceApproved {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white;
+
+}
+.clearanceModalStatusDetails.clearanceCompleted {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white;
+}
+
+/* Alternate row colors */
+.clearanceTable tbody tr:nth-child(odd) td {
+  background: #ffffff;
+}
+.clearanceTable tbody tr:nth-child(even) td {
+  background: #81878c;
+}
+
+/* Row hover effects (staircase effect) */
+.clearanceTable tbody tr {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.clearanceTable tbody tr:hover {
+    background: #549ee9; /* or another blue shade */
+    color: #fff; /* optional: make text white for contrast */
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 4px 8px rgba(33, 17, 17, 0.914), 0 8px 16px rgba(0, 0, 0, 0.1);
+ 
+    position: relative;
+}
+.clearanceTable tbody tr:hover td {
+    background: #549ee9 !important; /* force override */
+    color: #fff; /* optional: make text white */
+}
+
+.clearanceTable tbody tr:has(+ tr:hover),
+.clearanceTable tbody tr:hover + tr {
+  background: rgba(255,215,0,0.06);
+}
+#clearanceApprove {
+  background: rgb(49, 172, 4);
+  color: #ffffff;
+  padding: 1px 0px;
+  border-radius: 5px;
+  border: none;
+  width: 65px;
+height: 30px;
+padding-top: 0px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+#clearanceApprove:hover {
+ color: black;
+  transform: translateY(-2px);
+  transition: ease 0.3s;
+ background-color: rgb(71, 255, 4);
+
+
+}
+.clearanceRejects{
+ background: rgb(223, 3, 3);
+  color: #ffffff;
+  padding: 1px 0px;
+  border-radius: 5px;
+  border: none;
+  width: 65px;
+height: 30px;
+padding-top: 0px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+
+}
+
+.clearanceRejects:hover{
+ color: black;
+  transform: translateY(-2px);
+  transition: ease 0.3s;
+ background-color: #ff6e6e;
+
+}
+
+/* Status cells 
+.clearanceTable td.clearancePending { color: var(--bg-pending); font-weight: 600; }
+.clearanceTable td.clearanceApprove { color: var(--bg-approved); font-weight: 600; }
+.clearanceTable td.clearanceRejected { color: red; font-weight: 600; }*/
+
+/* ================================
+   TOGGLE BUTTON
+=============================== */
+.clearanceViewToggle {
+  background: var(--bg-buttons);
+  color: var(--text-secondary);
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-left: auto;
+}
+.clearanceViewToggle:hover {
+  transform: scale(1.15);
+  color: var(--text-primary);
+}
+.clearanceViewToggle.clearanceClicked { animation: clearanceClickPop 0.25s ease; }
+
+/* ================================
+   MODAL STYLES - ENHANCED
+=============================== */
+.clearanceModal {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  color: #333;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  position: relative;
+  animation: clearanceModalSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.clearanceModalContent {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  color: #333;
+  border-radius: 16px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 90vh;
+  height: 100px;
+  display: grid;
+  overflow-x: hidden;
+
+  position: relative; /* Changed from absolute to relative */
+  /* Remove this: right: 2000px; */
+  animation: clearanceModalSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  margin: auto; /* This helps with centering */
+}
+.clearanceModalHeader {
+  background: linear-gradient(135deg, #1060af, #529ae1);
+  color: white;
+  padding: 20px 25px;
+  border-radius: 16px 16px 0 0;
+}
+
+.clearanceModalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* ================================
+   RIGHT SIDEBAR MODAL STYLES
+=============================== */
+.clearanceSidebarModal {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+  z-index:10000;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.clearanceSidebarModal.clearanceActive {
+  transform: translateX(0);
+}
+
+.clearanceSidebarModal.clearanceSlideOut {
+  transform: translateX(100%);
+}
+
+.clearanceSidebarModalContent {
+  padding: 25px;
+  height: 100%;
+}
+
+.clearanceSidebarModal h2 {
+  margin-top: 0;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+
+/* ================================
+   SIDEBAR OVERLAY STYLES
+=============================== */
+.clearanceSidebarOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.4s ease;
+}
+
+.clearanceSidebarOverlay.clearanceActive {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ================================
+   SIDEBAR FORM STYLES (NEW)
+=============================== */
+.clearanceSidebarForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.clearanceSidebarForm fieldset {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  background: #f9f9f9;
+}
+
+.clearanceSidebarForm legend {
+  font-size: 14px;
+  font-weight: bold;
+  color: #444;
+  padding: 0 6px;
+  margin-left: 8px;
+}
+
+/* Floating label base */
+.clearanceFloatingLabel {
+  position: relative;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.clearanceFloatingLabel select {
+  width: 100%;
+  padding: 12px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  color: #020202;
+  line-height: 1.4;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23777' height='14' viewBox='0 0 24 24' width='14' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  cursor: pointer;
+  outline: none;
+  transition: border 0.25s ease, box-shadow 0.25s ease;
+}
+
+.clearanceFloatingLabel select:focus {
+  border-color: #1060af;
+  box-shadow: 0 0 8px rgba(16, 96, 175, 0.4);
+}
+
+.clearanceFloatingLabel label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  color: #777;
+  font-size: 14px;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  background: #fff;
+  padding: 0 4px;
+}
+
+/* Move label up when select has focus or value */
+.clearanceFloatingLabel select:focus + label,
+.clearanceFloatingLabel select:valid + label {
+  top: -8px;
+  left: 10px;
+  font-size: 12px;
+  color: #1060af;
+}
+
+/* Sidebar actions */
+.clearanceSidebarActions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.clearanceSidebarActions button {
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.clearanceSubmitBtn {
+   background: linear-gradient(135deg, #1060af, #529ae1);
+  color: #fff;
+}
+
+.clearanceSubmitBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgb(0, 0, 0);
+}
+
+.clearanceCancelBtn {
+   background-color: gray!important;
+  transition: all 0.25s ease;
+  color: var(--text-secondary)!important;
+}
+
+.clearanceCancelBtn:hover {
+  background: #999;
+}
+
+/* ================================
+   PAGINATION STYLES
+=============================== */
+.clearancePaginationContainer {
+  display: flex;
+  position: relative;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+  top: 10px;
+  gap: 5px;
+  padding-right: 10px;
+}
+.clearancePaginationContainer button {
+  background: #1060AF;
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px 12px;
+  margin-left: 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.clearancePaginationContainer button:hover {
+  color: var(--text-primary);
+  transform: scale(1.15);
+}
+.clearancePaginationContainer button.clearanceActive {
+  background-color: #74b1ef;
+
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: scale(1.15);
+}
+
+.animatedEmoji {
+  display: inline-block;
+  animation: bounceUpDown 2s ease-in-out infinite;
+}
+
+@keyframes bounceUpDown {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+
+
+.submissionSpinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* You might also want to adjust the button styles when loading */
+.clearanceConfirmationSubmitBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+/* Equipment Display Styles */
+.equipmentDisplay {
+  background: linear-gradient(135deg, #7a7a79, #aca8a8) !important;
+  color: white;
+
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+/* Not Applicable status style */
+
+
+/* "No Equipment" status style */
+.inspectionStatus.no-equipment {
+  background-color: #e9ecef;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* Alternative: Match your existing clearance status pattern */
+
+.inspectionStatus.no-equipment {
+  background-color: #ffffff;
+  border: 1px solid #ff9800;
+  font-weight: 600;
+  color: #ff9800;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.clearancePaginationContainer button.clearanceClicked { animation: clearanceClickPop 0.25s ease; }
+
+.clearancePaginationContainer.clearanceTopPagination {
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.clearancePaginationBtn {
+  background-color: #f7fbff;
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+}
+.clearanceModalDetailItem {
+  display: contents;
+}
+.clearancePaginationBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  transform: scale(1.15);
+}
+
+.clearancePaginationBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.clearancePaginationBtn.clearanceActive {
+  background: #1060AF;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: scale(1.15);
+}
+
+.clearancePaginationBtn.clearanceDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.clearancePaginationBtn.clearanceActive.clearanceDisabled {
+  background: rgb(0, 0, 0);
+  opacity: 0.7;
+}
+
+.clearancePaginationEllipsis {
+  padding: 6px 8px;
+  color: var(--text-secondary);
+  font-weight: bold;
+}
+.clearancePaginationBtn:disabled,
+.clearancePaginationBtn.clearanceDisabled {
+  opacity: 0.5;
+  cursor: not-allowed!important;
+  transform: none !important;
+}
+
+.clearancePaginationBtn:disabled:hover,
+.clearancePaginationBtn.clearanceDisabled:hover {
+  color: var(--text-secondary) !important;
+  transform: none !important;
+}
+
+.clearancePaginationBtn.clearanceActive:disabled,
+.clearancePaginationBtn.clearanceActive.clearanceDisabled {
+  background: #74b1ef;
+  opacity: 0.7;
+  pointer-events: none;
+}
+/* ================================
+   FILTER & SEARCH STYLES
+=============================== */
+.clearanceFilterSearchWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+.clearanceFilterGroup, .clearanceSearchGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#clearanceTypeFilter,#clearanceStatusFilter, #clearanceSearchInput {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(0,0,0,0.2);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.25s ease;
+    height: 36px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.clearanceFilterGroup label,
+.clearanceSearchGroup label {
+  height: 36px;
+  display: flex;
+  align-items: center;
+}#clearanceTypeFilter,#clearanceTypeFilter,
+#clearanceStatusFilter {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+#clearanceTypeFilter:hover,#clearanceStatusFilter:hover, #clearanceSearchInput:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+}
+#clearanceTypeFilter:focus,#clearanceStatusFilter:focus, #clearanceSearchInput:focus {
+  border-color: #3e76e6;
+  box-shadow: 0 0 0 3px rgba(62,118,230,0.3);
+}
+label[for="clearanceStatusFilter"] {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left:9px;
+  vertical-align: middle;
+  transition: color 0.25s ease;
+}
+label[for="clearanceStatusFilter"]:hover { color: var(--text-secondary); }
+#clearanceStatusFilter {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'><path fill='%23848484' d='M7 10l5 5 5-5H7z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  padding-right: 30px;
+}
+.clearanceActionsBtn {
+background: linear-gradient(135deg, #1060af, #529ae1);
+color: #fff;
+border: none;
+padding: 10px 20px;
+border-radius: 8px;
+font-weight: bold;
+cursor: pointer;
+transition: all 0.25s ease;
+}
+.clearanceActionsBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgb(0, 0, 0);
+}
+
+/* ================================
+   ANIMATIONS
+=============================== */
+@keyframes clearanceFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes clearanceSlideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes clearanceSlideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes clearanceClickPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+
+@keyframes clearanceModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ================================
+   RESPONSIVE
+=============================== */
+@media (max-width: 500px) {
+  .clearanceModalContent {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .clearanceModalHeader {
+    padding: 15px 20px;
+  }
+  
+  .clearanceModalHeader h2 {
+    font-size: 1.3rem;
+  }
+  
+  .clearanceModalBody {
+    padding: 20px;
+  }
+  
+  .clearanceModalDetailsGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .clearanceModalLabel {
+    padding: 4px 0;
+    font-size: 0.85rem;
+  }
+  
+  .clearanceModalValue {
+    padding: 4px 0 12px 0;
+    font-size: 0.9rem;
+  }
+  
+  .clearanceModalSection {
+    padding: 15px;
+  }
+  
+  .clearanceSidebarModal {
+    width: 100%;
+  }
+}
+
+
+
+ 
+
+.clearanceModalContentDetails {
+max-width: 80vh;
+ 
+  overflow-y: auto; /* Changed from hidden to auto */
+  overflow-x: hidden;
+  position: relative;
+    
+  animation: clearanceModalSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #529ae1 #f1f1f1;
+}
+.clearanceModalContentDetails::-webkit-scrollbar {
+  width: 8px;
+}
+
+.clearanceModalContentDetails::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 0 16px 16px 0;
+}
+
+.clearanceModalContentDetails::-webkit-scrollbar-thumb {
+  background: #529ae1;
+  border-radius: 8px;
+}
+
+.clearanceModalContentDetails::-webkit-scrollbar-thumb:hover {
+  background: #1060af;
+}
+
+.clearanceModalContentDetails::-webkit-scrollbar-button:start:decrement,
+.clearanceModalContentDetails::-webkit-scrollbar-button:end:increment {
+  display: block;
+  height: 10px;
+  background: transparent;
+}
+
+
+.clearanceModalHeaderDetails {
+  background: linear-gradient(135deg, #1060af, #529ae1);
+  color: white;
+  padding: 20px 25px;
+  border-radius: 16px 16px 0 0;
+}
+.clearanceModalHeaderDetails h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+.clearanceCloseBtn {
+right: -20px;
+top: -10px;
+position: relative;
+background-color:#00000000!important;
+  font-size: 34px;
+  font-weight: bold;
+  cursor: pointer;
+  color: rgb(0, 0, 0) !important; transition: all 0.25s ease;border: none;
+  margin-top: -10px;
+
+  width: 36px;
+  height: 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clearanceCloseBtn:hover {
+  color:red !important;
+}
+
+.clearanceCloseBtnDetails{
+  left: 430px;
+bottom: 45px;
+position: relative;
+background-color:#f8f8f800;
+  font-size: 34px;
+  font-weight: bold;
+  cursor: pointer;
+  color: rgb(0, 0, 0);
+  margin-top: -10px;
+ transition: all 0.25s ease;
+  width: 36px;
+  height: 36px;
+border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clearanceCloseBtnDetails:hover{
+
+  color:red;
+}
+
+
+
+.clearanceModalBodyDetails {
+  width: auto;
+  background: white;
+  /* Ensure content can scroll if needed */
+  overflow-y: visible;
+  max-height: calc(90vh - 100px); /* Account for header */
+}
+
+/* Enhanced modal body layout */
+#clearanceModalBodyDetails {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  /* Make sure content can expand beyond viewport */
+  min-height: min-content;
+}
+.clearanceModalSectionDetails {
+  background: #d0d1d1;
+  border-radius: 12px;
+  padding: 2px;
+  border-left: 4px solid #007bf7;
+margin-bottom: 10px;
+  transition: transform 0.2s ease;
+}
+
+.clearanceModalSectionDetails:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.695);
+}
+
+.clearanceModalSectionTitleDetails {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1060af;
+  margin: 0 0 15px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clearanceModalSectionTitleDetails::before {
+  content: "•";
+  color: #529ae1;
+  font-size: 1.5rem;
+}
+
+.clearanceModalDetailsGridDetails {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.clearanceModalDetailItemDetails {
+  display: contents;
+}
+
+.clearanceModalLabelDetails {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+  padding: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
+.clearanceModalValueDetails{
+    padding: 8px 0;
+position: relative;
+  left: 10px;
+  margin-top: 1.2px;
+  font-size: 0.95rem;
+  color: #333;
+  
+  word-break: break-word;
+  }
+.clearanceModalValueDetailsType{
+    padding: 8px 0;
+position: relative;
+  right: 110px;
+  margin-top: 0px;
+  font-size: 0.95rem;
+  color: #333;
+  
+  word-break: break-word;
+}
+
+
+.clearanceModalValueDetailsDate{
+    padding: 8px 0;
+  position: relative;
+  right: 40px;
+  margin-top: 1px;
+  font-size: 0.95rem;
+  color: #333;
+  
+  word-break: break-word;
+}
+
+
+.clearanceModalValueDetailsStatus {
+  padding: 8px 0;
+  position: relative;
+  left: -90px;
+  margin-top: -1.5px;
+  font-size: 0.95rem;
+  color: #333;
+  
+  word-break: break-word;
+}
+h1{
+  padding-bottom: 80px;
+}
+
+/* Status specific styles */
+.clearanceModalStatusDetails {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 90px;
+  right: -90px;
+  text-align: left;
+  padding-right: 10px;
+}
+
+
+
+
+
+
+
+
+/* Main container styles */
+.clearanceSystem {
+  position: relative;
+}
+
+.clearanceMainContent {
+  transition: all 0.3s ease;
+  margin-left: 250px;
+  padding: 20px;
+}
+
+.clearanceMainContent.clearanceCollapsed {
+  margin-left: 60px;
+}
+
+.clearanceRightSidebarOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  display: flex;
+  justify-content: flex-end;
+  animation: clearanceFadeIn 0.3s ease;
+
+}
+ 
+.clearanceRightSidebar {
+  width: 400px;
+  height: 100vh;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  animation: clearanceSlideInRight 0.3s ease;
+  overflow-y: auto;
+}
+
+.clearanceSidebarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--card-bg);
+}
+
+.clearanceSidebarHeader h3 {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.clearanceFormSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.clearanceFormSection h3 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.clearanceInputGroup {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.clearanceInputGroup input,
+.clearanceInputGroup select {
+  width: 100%;
+  padding: 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  background: white;
+  box-sizing: border-box;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.clearanceInputGroup input:focus,
+.clearanceInputGroup select:focus {
+  border-color: #0099ff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.25);
+}
+
+.clearanceInputGroup h4 {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  background: white;
+  padding: 0 4px;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 1;
+  margin: 0;
+}
+
+.clearanceInputGroup input:focus + h4,
+.clearanceInputGroup select:focus + h4,
+.clearanceInputGroup input:not(:placeholder-shown) + h4,
+.clearanceInputGroup select:not(:invalid) + h4 {
+  top: 0;
+  font-size: 12px;
+  color: #0099ff;
+  font-weight: 600;
+}
+
+.clearanceActions {
+  display: flex;
+  gap: 10px;
+  padding-left: 0; /* Remove excessive padding */
+  margin-right: 0;
+  justify-content: center; /* Center the buttons */
+  align-items: center;
+}
+
+.clearanceView {
+  background: rgb(227, 185, 0);
+  color: #ffffff;
+  padding: 6px 4px;
+  border-radius: 5px;
+  border: none;
+  width: 55px;
+height: 30px;
+padding-top: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-left: 35px;
+  transition: all 0.25s ease;
+}
+.clearanceView:hover {
+ color: black;
+  transform: translateY(-2px);
+  transition: ease 0.3s;
+ background-color: rgb(253, 224, 95);
+}
+.clearanceNoRequests {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+  padding: 20px;
+}
+
+
+
+
+
+
+
+/* Equipment Badge */
+.equipmentBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.equipmentCount {
+  background: #e3f2fd;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.viewEquipmentBtn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.3s;
+}
+
+.viewEquipmentBtn:hover {
+  background: #388e3c;
+}
+
+.noEquipment {
+  color: #999;
+  font-style: italic;
+}
+
+/* Equipment Modal */
+.equipmentModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.equipmentModal {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 1200px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.equipmentModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+}
+
+.equipmentModalHeader h3 {
+  margin: 0;
+  color: #333;
+}
+
+.equipmentModalHeader button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.equipmentModalContent {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #529ae1 #f1f1f1;
+}
+.equipmentModalContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.equipmentModalContent::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.equipmentModalContent::-webkit-scrollbar-thumb {
+  background: #529ae1;
+  border-radius: 8px;
+}
+
+.equipmentModalContent::-webkit-scrollbar-thumb:hover {
+  background: #085CB1;
+}
+/* Equipment Table */
+.equipmentTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.equipmentTable th {
+  background: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.equipmentTable td {
+  padding: 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.equipmentStatus {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.equipmentStatus.good {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.equipmentStatus.damaged {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.equipmentStatus.needs-maintenance {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.equipmentStatus.under-repair {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.equipmentStatus.lost {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+/* Equipment Actions */
+.equipmentActions {
+  display: flex;
+  gap: 8px;
+}
+
+.markClearedBtn,
+.markDamagedBtn,
+.markReturnedBtn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.markClearedBtn {
+  background: #4caf50;
+  color: white;
+}
+
+.markClearedBtn:hover {
+  background: #388e3c;
+}
+
+.markDamagedBtn {
+  background: #f44336;
+  color: white;
+}
+
+.markDamagedBtn:hover {
+  background: #d32f2f;
+}
+
+.markReturnedBtn {
+  background: #2196f3;
+  color: white;
+}
+
+.markReturnedBtn:hover {
+  background: #1976d2;
+}
+
+.returnedBadge {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Equipment Modal Summary */
+.equipmentModalSummary {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 6px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.equipmentModalSummary p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.equipmentModalSummary strong {
+  color: #333;
+}
+
+/* Equipment Selection */
+.equipmentSelection {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.equipmentCheckbox {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.equipmentCheckbox input {
+  margin-right: 8px;
+}
+
+.equipmentCheckbox label {
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+}
+
+.equipmentNotice {
+  background: #e8f5e9;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #2e7d32;
+}
+
+.selectedEmployee {
+  background: #e3f2fd;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #1976d2;
+}
+
+/* Clearance Status Colors */
+.clearanceStatus.pending {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.clearanceStatus.in-progress {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.clearanceStatus.completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.clearanceStatus.rejected {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.clearanceStatus.cancelled {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.clearanceStatus.cleared {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.clearanceStatus.damaged {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.clearanceStatus.lost {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+/* Equipment Badge */
+.equipmentBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.equipmentCount {
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #666;
+}
+
+.viewEquipmentBtn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.viewEquipmentBtn:hover {
+  background-color: #0056b3;
+}
+
+.noEquipment {
+  color: #999;
+  font-style: italic;
+}
+
+/* Equipment Modal Styles */
+.equipmentModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.equipmentModal {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.equipmentModalHeader {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.equipmentModalHeader h3 {
+  margin: 0;
+  color: #333;
+}
+
+.equipmentModalHeader button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.equipmentModalContent {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.equipmentTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.equipmentTable th {
+  background-color: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+}
+
+.equipmentTable td {
+  padding: 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.equipmentStatus {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.equipmentStatus.good {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.equipmentStatus.damaged {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.equipmentStatus.needs-maintenance {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.equipmentActions {
+  display: flex;
+  gap: 8px;
+}
+
+.markClearedBtn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.markDamagedBtn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.markReturnedBtn {
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.returnedBadge {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.equipmentModalSummary {
+  display: flex;
+  gap: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-top: 20px;
+}
+
+.equipmentModalSummary p {
+  margin: 0;
+  color: #495057;
+}
+
+.equipmentModalSummary strong {
+  color: #212529;
+}
+
+/* Equipment column in table */
+
+
+.equipmentCount {
+  background-color: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #495057;
+  min-width: 70px;
+  text-align: center;
+}
+
+.viewEquipmentBtn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.viewEquipmentBtn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.noEquipment {
+  color: #6c757d;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Equipment Modal Overlay */
+.equipmentModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.equipmentModal {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 1200px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  margin-left: 200px;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.equipmentModalHeader {
+  padding: 20px;
+  background:linear-gradient(135deg, #1060af, #529ae1);
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.equipmentModalHeader h3 {
+  margin: 0;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.equipmentModalHeader button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.equipmentModalHeader button:hover {
+  opacity: 1;
+}
+
+.equipmentModalContent {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Equipment Table in Modal */
+.equipmentTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.equipmentTable th {
+  background-color: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  position: sticky;
+  top: 0;
+}
+
+.equipmentTable td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.equipmentTable tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Status badges */
+.equipmentStatus {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  min-width: 80px;
+  text-align: center;
+}
+
+.equipmentStatus.good {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.equipmentStatus.damaged {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.equipmentStatus.needs-maintenance {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.clearanceStatus {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  min-width: 80px;
+  text-align: center;
+}
+
+.clearanceStatus.pending {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.clearanceStatus.cleared {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.clearanceStatus.damaged {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.clearanceStatus.lost {
+  background-color: #e9ecef;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.clearanceStatus.in-progress {
+  background-color: #cce5ff;
+  color: #004085;
+  border: 1px solid #b8daff;
+}
+
+/* Equipment Actions */
+.equipmentActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.markClearedBtn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.markClearedBtn:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+}
+
+.markDamagedBtn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.markDamagedBtn:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+.markReturnedBtn {
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.markReturnedBtn:hover {
+  background-color: #138496;
+  transform: translateY(-1px);
+}
+
+.returnedBadge {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #c3e6cb;
+}
+
+/* Equipment Modal Summary */
+.equipmentModalSummary {
+  display: flex;
+  gap: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  margin-top: 20px;
+  border: 1px solid #dee2e6;
+  flex-wrap: wrap;
+}
+
+.equipmentModalSummary p {
+  margin: 0;
+  color: #495057;
+  font-size: 14px;
+}
+
+.equipmentModalSummary strong {
+  color: #212529;
+  margin-right: 5px;
+}.sourceBadge {
+  font-size: 12px;
+  background-color: #6c757d;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 10px;
+  font-weight: normal;
+}
+
+.inspectionStatus {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  display: inline-block;
+  min-width: 110px;
+  text-align: center;
+}
+
+.inspectionStatus.pass {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+
+}
+
+.inspectionStatus.fail {
+  background: linear-gradient(135deg, #f56262, #dc2626) !important;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+
+}
+
+.inspectionStatus.pending {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: white;
+
+}
+
+/* ================================
+   TABLE CONTAINER & SCROLL STYLES
+=============================== */
+
+.clearanceTableContainer {
+  width: 101%;
+  overflow-x: auto; /* Enable horizontal scrolling */
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  border-radius: 12px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  background: #fff;
+  position: relative;
+  margin-left: -5px;
+  margin-top: 20px; /* Add some top margin */
+}
+.clearanceTableContainer::-webkit-scrollbar {
+  height: 10px;
+
+}
+
+.clearanceTableContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 0 0 10px 10px;
+}
+
+.clearanceTableContainer::-webkit-scrollbar-thumb {
+  background: #529ae1;
+  border-radius: 10px;
+}
+
+.clearanceTableContainer::-webkit-scrollbar-thumb:hover {
+  background: #1060af;
+}
+/* ================================
+   CLEARANCE CARD STYLES (Like Personnel Register)
+=============================== */
+.clearanceCard {
+  background: rgb(255, 249, 249);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 4px rgba(16, 95, 175, 0.597);
+  position: relative;
+  padding-top: 65px;
+  width: 101%;
+  box-sizing: border-box;
+  margin-left: -3px;
+}
+
+.clearanceCard h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  border-left: 4px solid #085CB1;
+  padding-left: 10px;
+  color: black;
+}
+
+/* ================================
+   SHOW/HIDE FORM BUTTON
+=============================== */
+.clearanceShowFormBtn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: absolute;
+  top: 20px;
+  left: 25px;
+  color: #fff;
+  background: linear-gradient(135deg, #1060af, #529ae1);
+}
+
+.clearanceShowFormBtn:hover {
+  transform: translateY(-2px);
+
+}
+
+.clearanceShowFormBtn:active {
+  transform: translateY(0);
+    color: #000;
+}
+
+.clearanceShowFormBtn.showing {
+ 
+
+  transform: scale(1.05);
+}
+/* ================================
+   SCROLLABLE EQUIPMENT TABLE STYLES
+=============================== */
+.equipmentTableContainer {
+  max-height: 250px; /* Adjust this height as needed */
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-bottom: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+}
+
+/* Custom scrollbar for equipment table */
+.equipmentTableContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.equipmentTableContainer::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.equipmentTableContainer::-webkit-scrollbar-thumb {
+  background: #529AE1;
+  border-radius: 4px;
+}
+
+.equipmentTableContainer::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* For Firefox */
+.equipmentTableContainer {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f5f5f5;
+}
+
+/* Make sure table headers stay visible when scrolling */
+.equipmentPreviewTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #1060af, #529ae1);
+}
+
+/* Adjust table styles for better scrolling */
+.equipmentPreviewTable {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.equipmentPreviewTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .equipmentTableContainer {
+    max-height: 200px;
+  }
+  
+  .equipmentPreviewTable th,
+  .equipmentPreviewTable td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+/* ================================
+   FORM ANIMATION STYLES
+=============================== */
+.clearanceForm {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: max-height 0.5s ease, opacity 0.5s ease, transform 0.5s ease;
+}
+
+.clearanceForm.show {
+  max-height: 2000px; /* Adjust based on your form height */
+  opacity: 1;
+  transform: translateY(0);
+  margin-top: 20px;
+}
+
+/* ================================
+   FORM LAYOUT STYLES
+=============================== */
+.clearanceFormSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+.clearanceFormSection h3 {
+  margin: 0;
+  color: #1060af;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 8px;
+}
+
+/* Input group styles */
+.clearanceInputGroup {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.clearanceInputGroup select {
+  width: 100%;
+  padding: 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  background: white;
+  box-sizing: border-box;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.clearanceInputGroup select:focus {
+  border-color: #0099ff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.25);
+}
+
+.clearanceInputGroup h4 {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  background: white;
+  padding: 0 4px;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 1;
+  margin: 0;
+}
+
+.clearanceInputGroup select:focus + h4,
+.clearanceInputGroup select:not(:invalid) + h4 {
+  top: 0;
+  font-size: 12px;
+  color: #0099ff;
+  font-weight: 600;
+}
+
+/* Selected employee display */
+.selectedEmployee {
+  background: #e3f2fd;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+/* ================================
+   FORM ACTIONS STYLES
+=============================== */
+.clearanceFormActions {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.clearanceFormActions button {
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.clearanceSubmitBtn {
+  background: linear-gradient(135deg, #1060af, #529ae1);
+  color: #fff;
+}
+
+.clearanceSubmitBtn:hover {
+  transform: translateY(-2px);
+ 
+}
+
+
+.clearanceCancelBtn:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+/* ================================
+   RESPONSIVE DESIGN
+=============================== */
+@media (max-width: 768px) {
+  .clearanceCard {
+    width: 100%;
+    margin-left: 0;
+    padding: 15px;
+  }
+  
+  .clearanceFormSection {
+    padding: 15px;
+  }
+  
+  .clearanceFormActions {
+    flex-direction: column;
+  }
+  
+  .clearanceFormActions button {
+    width: 100%;
+  }
+  
+  .clearanceShowFormBtn {
+    position: relative;
+    top: 0;
+    left: 0;
+    margin-bottom: 15px;
+  }
+}
+/* For Firefox */
+
+/* Make the table itself now have a fixed minimum width */
+.clearanceTable {
+  min-width: 1200px; /* Force horizontal scroll with minimum width */
+  width: 100%;
+  padding: 20px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  background: #fff;
+  text-align: center;
+  position: relative;
+  top: 0.4vh;
+}
+
+/* Keep thead fixed during horizontal scroll */
+.clearanceTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.clearanceTable th {
+  padding: 14px 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #529ae1;
+  white-space: nowrap; /* Prevent header wrapping */
+  border-bottom: 3px solid var(--border);
+}
+
+.clearanceTable tbody td {
+  padding: 14px 16px;
+  background: var(--bg-main);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.585);
+  color: var(--text-primary);
+  transition: background 0.25s ease;
+  white-space: nowrap; /* Keep cell content on one line */
+}
+
+/* Adjust pagination position to stay with table */
+.clearancePaginationContainer.clearanceTopPagination {
+  justify-content: flex-end;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 5;
+}
+
+/* Ensure modal content doesn't get affected */
+.clearanceModalContentDetails,
+.equipmentModal {
+  overflow-x: hidden !important;
+}
+
+.clearanceTable th:nth-child(1), /* Request Date */
+.clearanceTable td:nth-child(1) {
+  min-width: 120px;
+}
+
+.clearanceTable th:nth-child(2), /* Employee Name */
+.clearanceTable td:nth-child(2) {
+  min-width: 150px;
+}
+
+.clearanceTable th:nth-child(3), /* Badge No */
+.clearanceTable td:nth-child(3) {
+  min-width: 100px;
+}
+
+.clearanceTable th:nth-child(4), /* Clearance Type */
+.clearanceTable td:nth-child(4) {
+  min-width: 150px;
+}
+
+.clearanceTable th:nth-child(5), /* Equipment */
+.clearanceTable td:nth-child(5) {
+  min-width: 140px;
+}
+
+.clearanceTable th:nth-child(6), /* Status */
+.clearanceTable td:nth-child(6) {
+  min-width: 100px;
+}
+
+.clearanceTable th:nth-child(7), /* Inspection */
+.clearanceTable td:nth-child(7) {
+  min-width: 100px;
+}
+
+/* Add to your CSS */
+.actionsCell {
+  padding: 8px !important; /* Reduced padding */
+  text-align: center !important;
+}
+
+/* Update your table header/column styles */
+.clearanceTable th:nth-child(8),
+.clearanceTable td:nth-child(8) {
+  min-width: 220px; /* Reduced from 250px if needed */
+  padding: 20px !important;
+  text-align: center;
+}
+
+/* Keep all your existing row styling, hover effects, etc. */
+.clearanceTable tbody tr:nth-child(odd) td {
+  background: #ffffff;
+}
+.clearanceTable tbody tr:nth-child(even) td {
+  background: #81878c;
+}/* ================================
+   ASSIGNED EQUIPMENT TABLE STYLES
+=============================== */
+
+.equipmentListPreview {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  margin-top: 8px;
+}
+
+.equipmentPreviewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.equipmentPreviewTable thead {
+  background: linear-gradient(135deg, #1060af, #529ae1);
+}
+
+.equipmentPreviewTable th {
+  padding: 10px 12px;
+  text-align: left;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.equipmentPreviewTable th:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+.equipmentPreviewTable th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
+.equipmentPreviewTable tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.equipmentPreviewTable tbody tr:hover {
+  background-color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.equipmentPreviewTable td {
+  padding: 10px 12px;
+  color: #333;
+  vertical-align: middle;
+}
+
+.equipmentPreviewTable td:first-child {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.equipmentPreviewTable td:nth-child(2) {
+  font-family: 'Monaco', 'Consolas', monospace;
+  color: #1060af;
+  font-size: 12px;
+}
+
+.equipmentPreviewTable td:nth-child(4) {
+  font-weight: 600;
+  color: #27ae60;
+}
+
+.equipmentStatusBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Status-specific colors */
+.equipmentStatusBadge.good {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.equipmentStatusBadge.damaged {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.equipmentStatusBadge.maintenance {
+  background-color: rgba(241, 196, 15, 0.15);
+  color: #f39c12;
+  border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+.equipmentStatusBadge.available {
+  background-color: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+/* Summary section */
+.equipmentSummary {
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 0 0 8px 8px;
+}
+
+.equipmentSummary p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.equipmentSummary strong {
+  color: #2c3e50;
+  font-weight: 700;
+}
+
+.equipmentSummary .totalItems {
+  background: #e3f2fd;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-weight: 600;
+  color: #1060af;
+}
+
+.equipmentSummary .totalValue {
+  background: #e8f5e9;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-weight: 600;
+  color: #27ae60;
+}
+
+.moreItems {
+  text-align: center;
+  padding: 8px;
+  background: #f8f9fa;
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+  border-top: 1px dashed #dee2e6;
+}
+
+/* Header styling */
+.equipmentNotice h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1060af;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e3f2fd;
+}
+
+.equipmentNotice h4::before {
+  content: "📋";
+  font-size: 16px;
+}
+
+/* Animation for new rows */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.equipmentPreviewTable tbody tr {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.equipmentPreviewTable tbody tr:nth-child(1) { animation-delay: 0.1s; }
+.equipmentPreviewTable tbody tr:nth-child(2) { animation-delay: 0.2s; }
+.equipmentPreviewTable tbody tr:nth-child(3) { animation-delay: 0.3s; }
+.equipmentPreviewTable tbody tr:nth-child(4) { animation-delay: 0.4s; }
+.equipmentPreviewTable tbody tr:nth-child(5) { animation-delay: 0.5s; }
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .equipmentPreviewTable {
+    font-size: 12px;
+  }
+  
+  .equipmentPreviewTable th,
+  .equipmentPreviewTable td {
+    padding: 8px 10px;
+  }
+  
+  .equipmentSummary {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}
+
+/* Zebra striping for better readability */
+.equipmentPreviewTable tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.equipmentPreviewTable tbody tr:nth-child(even):hover {
+  background-color: #f0f7ff;
+}
+
+/* Value formatting */
+.equipmentPreviewTable td:nth-child(4)::before {
+  content: "$";
+  font-size: 10px;
+  vertical-align: super;
+  margin-right: 1px;
+  opacity: 0.7;
+}
+
+/* Download Column Styles */
+.downloadColumn {
+  padding: 8px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.downloadActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.downloadExistingBtn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+  min-width: 80px;
+}
+
+.downloadExistingBtn:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+.generatePdfBtn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.generatePdfBtn:hover:not(:disabled) {
+  background-color: #1976D2;
+  transform: translateY(-1px);
+}
+
+.generatePdfBtn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* PDF Progress Overlay */
+.pdfProgressOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.pdfProgressModal {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  min-width: 300px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.pdfProgressBar {
+  width: 100%;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+
+.pdfProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #45a049);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.pdfProgressFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.pdfProgressNote {
+  font-size: 12px;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* Download Column Styles */
+.downloadColumn {
+  padding: 8px;
+  text-align: center;
+  min-width: 140px;
+}
+
+.downloadActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.downloadExistingBtn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+  min-width: 120px;
+}
+
+.downloadExistingBtn:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+.generatePdfBtn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.generatePdfBtn:hover:not(:disabled) {
+  background-color: #1976D2;
+  transform: translateY(-1px);
+}
+
+.generatePdfBtn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.notAvailable {
+  color: #999;
+  font-size: 11px;
+  font-style: italic;
+  display: block;
+  text-align: center;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Modal buttons */
+.downloadModalBtn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.downloadModalBtn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+}
+
+.generateModalBtn {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.generateModalBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1976D2, #1e40af);
+  transform: translateY(-1px);
+}
+
+.generateModalBtn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* PDF Progress Overlay */
+.pdfProgressOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.pdfProgressModal {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  min-width: 300px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.pdfProgressBar {
+  width: 100%;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+
+.pdfProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #45a049);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.pdfProgressFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.pdfProgressNote {
+  font-size: 12px;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* ================================
+   CLEARANCE CONFIRMATION MODAL STYLES
+================================ */
+/* ================================
+   CLEARANCE CONFIRMATION MODAL STYLES
+================================ */
+.clearanceConfirmationModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: clearanceFadeIn 0.3s ease;
+}
+
+.clearanceConfirmationModal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh; /* Limit height to 80% of viewport */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  margin-left: 290px;
+  animation: clearanceSlideFadeIn 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column; /* Ensure proper layout */
+}
+
+.clearanceConfirmationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, #1060af, #529ae1);
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.clearanceConfirmationHeader h2 {
+  margin: 0;
+  color: white;
+  font-size: 22px;
+  font-weight: 600;
+  margin-left: 100px;
+}
+
+.clearanceConfirmationCloseBtn {
+  background: none;
+  border: none;
+  font-size: 34px;
+  font-weight: bold;
+  cursor: pointer;
+  color: rgb(0, 0, 0);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  position: relative;
+  left: 20px;
+  bottom: 25px;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  border-radius: 50%;
+}
+
+.clearanceConfirmationCloseBtn:hover {
+  color: #ff4444;
+}
+
+.clearanceConfirmationBody {
+  padding: 30px;
+  overflow-y: auto; /* Enable vertical scrolling */
+  flex: 1; /* Take remaining space */
+  max-height: calc(80vh - 160px); /* Calculate max height (80vh - header/footer heights) */
+}
+
+/* Custom scrollbar styling for the modal body */
+.clearanceConfirmationBody::-webkit-scrollbar {
+  width: 6px;
+}
+
+.clearanceConfirmationBody::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.clearanceConfirmationBody::-webkit-scrollbar-thumb {
+  background: #085CB1;
+  border-radius: 3px;
+}
+
+.clearanceConfirmationBody::-webkit-scrollbar-thumb:hover {
+  background: #529AE1;
+}
+
+/* For Firefox */
+.clearanceConfirmationBody {
+  scrollbar-width: thin;
+  scrollbar-color: #085CB1 #f1f5f9;
+}
+
+.clearanceConfirmationIcon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  
+  text-align: center;
+}
+
+.clearanceConfirmationText {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.clearanceEmployeeNameHighlight {
+  margin: 0 0 15px 0;
+  color: #1060af;
+  font-weight: 600;
+  font-size: 18px;
+  word-break: break-word;
+  text-align: center;
+}
+
+.clearanceConfirmationDetails {
+  margin: 20px 0;
+  text-align: left;
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.clearanceConfirmationDetails p {
+  margin: 8px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.clearanceConfirmationDetails strong {
+  color: #333;
+}
+
+.clearanceEquipmentSummary {
+  margin-top: 15px;
+  padding: 12px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  border-left: 4px solid #1060af;
+}
+
+.clearanceEquipmentSummary h4 {
+  margin: 0 0 10px 0;
+  color: #1060af;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.clearanceEquipmentList {
+  max-height: 120px; /* Limit equipment list height */
+  overflow-y: auto;
+  margin: 10px 0;
+  padding: 10px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Scrollbar for equipment list */
+.clearanceEquipmentList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.clearanceEquipmentList::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 2px;
+}
+
+.clearanceEquipmentList::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 2px;
+}
+
+.clearanceEquipmentList::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.clearanceEquipmentItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+
+.clearanceEquipmentItem:last-child {
+  border-bottom: none;
+}
+
+.clearanceConfirmationNote {
+  margin: 20px 0 0 0;
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.clearanceConfirmationActions {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+  justify-content: center;
+  flex-shrink: 0; /* Prevent footer from shrinking */
+  background: white;
+}
+
+.clearanceConfirmationCancelBtn,
+.clearanceConfirmationSubmitBtn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 120px;
+  font-size: 14px;
+}
+
+.clearanceConfirmationCancelBtn {
+  background: #6c757d;
+  color: white;
+}
+
+.clearanceConfirmationCancelBtn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.clearanceConfirmationSubmitBtn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.clearanceConfirmationSubmitBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.clearanceConfirmationCancelBtn:disabled,
+.clearanceConfirmationSubmitBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Animation */
+@keyframes clearanceSlideFadeIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .clearanceConfirmationModal {
+    margin-left: 0;
+    width: 90%;
+    max-height: 85vh;
+  }
+  
+  .clearanceConfirmationBody {
+    max-height: calc(85vh - 160px);
+    padding: 20px;
+  }
+  
+  .clearanceConfirmationActions {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .clearanceConfirmationModal {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .clearanceConfirmationBody {
+    max-height: calc(90vh - 160px);
+    padding: 15px;
+  }
+  
+  .clearanceConfirmationHeader {
+    padding: 15px;
+  }
+  
+  .clearanceConfirmationHeader h2 {
+    font-size: 18px;
+  }
+  
+  .clearanceConfirmationIcon {
+    font-size: 36px;
+  }
+  
+  .clearanceConfirmationActions {
+    flex-direction: column;
+  }
+  
+  .clearanceConfirmationCancelBtn,
+  .clearanceConfirmationSubmitBtn {
+    width: 100%;
+  }
+}
+
+
+
+/* Toast Container Styles */
+.Toastify__toast-container {
+  z-index: 9999;
+}
+
+.Toastify__toast {
+  font-family: inherit;
+  border-radius: 8px;
+}
+
+.Toastify__toast--success {
+  background: #10b981;
+  color: white;
+}
+
+.Toastify__toast--warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.Toastify__toast--error {
+  background: #ef4444;
+  color: white;
+}
+
+.Toastify__toast--info {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Modal Overlay */
+.clearanceModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.clearanceModal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease-out;
+  position: relative;
+  left: 100px;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clearanceModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.clearanceModalHeader h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.clearanceModalHeader button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.clearanceModalHeader button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.clearanceModalBody {
+  padding: 20px;
+}
+
+.clearanceModalBody p {
+  margin-bottom: 15px;
+  color: #374151;
+}
+
+.clearanceModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.clearanceCancelBtn {
+  padding: 10px 20px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.clearanceCancelBtn:hover {
+  background: #e5e7eb;
+}
+
+.clearanceApproveBtn {
+  font-weight: 600 !important;
+  color: #66bb6a!important;
+  background-color: #ffffff!important;
+  border: 1px solid #66bb6a!important;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.clearanceApproveBtn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.clearanceApproveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.clearanceRejectBtn {
+  padding: 10px 20px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.clearanceRejectBtn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.clearanceRejectBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.clearanceInputGroup {
+  margin-top: 20px;
+}
+
+.clearanceInputGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.clearanceInputGroup textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.clearanceInputGroup textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}/* Add these styles to your CSS file */
+
+/* Approve/Reject Modal Overlay */
+.approveRejectModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Approve/Reject Modal Container */
+.approveRejectModal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease-out;
+  overflow: hidden;
+}
+
+/* Modal Header */
+.approveRejectModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #1060af, #529ae1);
+}
+
+.approveRejectModalHeader h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+.approveRejectModalHeader button {
+  background: none;
+
+   font-size: 34px;
+  font-weight: bold;
+  cursor: pointer;
+  color: rgb(0, 0, 0); transition: all 0.25s ease;border: none;
+bottom: 25px;
+left: 20px;
+position: relative;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.approveRejectModalHeader button:hover {
+  color:red;
+
+}
+
+/* Modal Body */
+.approveRejectModalBody {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.approveRejectModalBody p {
+  margin-bottom: 15px;
+  color: #374151;
+}
+
+/* Modal Footer */
+.approveRejectModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+/* Input Group for remarks/reason */
+.approveRejectInputGroup {
+  margin-top: 20px;
+}
+
+.approveRejectInputGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.approveRejectInputGroup textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.approveRejectInputGroup textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Buttons */
+.approveRejectCancelBtn {
+  padding: 10px 20px;
+  background: #f3f4f6;
+  color:#000;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.approveRejectCancelBtn:hover {
+  background: #e5e7eb;
+}
+
+.approveRejectConfirmBtn {
+  padding: 10px 20px;
+  background: #31AC04;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.approveRejectConfirmBtn:hover:not(:disabled) {
+
+  transform: translateY(-1px);
+
+}
+
+.approveRejectConfirmBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Animation */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clearanceModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: clearanceFadeIn 0.3s ease;
+}
+
+
+/* Add to your ClearanceSystem.module.css */

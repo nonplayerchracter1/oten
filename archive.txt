@@ -1,0 +1,1154 @@
+// hooks/Sidebar.jsx - Updated for tooltip approach
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { useSidebar } from "./SidebarContext";
+
+const Sidebar = () => {
+  const { isSidebarCollapsed, expandSidebar, currentTheme, toggleTheme } =
+    useSidebar();
+  const [activeTab, setActiveTab] = useState("");
+  const [tooltipContent, setTooltipContent] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const location = useLocation();
+  const [hoverTimeout, setHoverTimeout] = useState(null);
+  const dropdownSections = [
+    {
+      id: "personnel",
+      title: "Personnel Records",
+      icon: "👥",
+      items: [
+        {
+          href: "/personnelProfile",
+          icon: "📁",
+          text: "Personnel Profile (201 Files)",
+        },
+        { href: "/leaveRecords", icon: "🗄️", text: "Leave Records" },
+        { href: "/clearanceRecords", icon: "💾", text: "Clearance Records" },
+      ],
+    },
+    {
+      id: "morale",
+      title: "Morale & Welfare",
+      icon: "❤️",
+      items: [
+        {
+          href: "/medicalRecords",
+          icon: "🩺",
+          text: "Medical Records of Employees",
+        },
+        {
+          href: "/awardsCommendations",
+          icon: "🏅",
+          text: "Awards & Commendations",
+        },
+      ],
+    },
+    {
+      id: "hr",
+      title: "HR Management",
+      icon: "🧑‍🤝‍🧑",
+      items: [
+        { href: "/promotion", icon: "📈", text: "Qualified for Promotion" },
+        {
+          href: "/recruitmentPersonnel",
+          icon: "👥",
+          text: "Recruited Personnel",
+        },
+        { href: "/trainings", icon: "🎓", text: "Trainings" },
+        { href: "/placement", icon: "📍", text: "Placement (≥ 2 Years)" },
+        { href: "/history", icon: "⏳", text: "History" },
+      ],
+    },
+  ];
+
+  useEffect(() => {
+    const currentPath = location.pathname;
+    setActiveTab(currentPath);
+  }, [location.pathname]);
+
+  const handleDropdownHover = (section, e) => {
+    if (isSidebarCollapsed) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.right + 10,
+        y: rect.top,
+      });
+      setTooltipContent(section);
+
+      // Clear any existing timeout
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+        setHoverTimeout(null);
+      }
+    }
+  };
+  const handleTooltipEnter = () => {
+    // Clear the hide timeout when entering the tooltip
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+  };
+  const handleTooltipLeave = () => {
+    // Hide tooltip after a short delay
+    const timeout = setTimeout(() => {
+      setTooltipContent(null);
+    }, 150);
+    setHoverTimeout(timeout);
+  };
+  const handleDropdownLeave = (e) => {
+    // Only hide if not hovering over the tooltip itself
+    if (!e.relatedTarget || !e.relatedTarget.closest(".dropdown-tooltip")) {
+      // Add a small delay to allow moving to the tooltip
+      const timeout = setTimeout(() => {
+        setTooltipContent(null);
+      }, 150);
+      setHoverTimeout(timeout);
+    }
+  };
+
+  const handleTooltipItemClick = (href) => {
+    setTooltipContent(null);
+    if (isSidebarCollapsed) {
+      expandSidebar();
+    }
+  };
+
+  const isTabActive = (href) => activeTab === href;
+  const isDropdownItemActive = (href) => activeTab === href;
+
+  const handleTabClick = (e, href) => {
+    if (isSidebarCollapsed) {
+      expandSidebar();
+    }
+  };
+
+  return (
+    <div className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+      {/*   <div className="theme-toggle">
+        <button onClick={toggleTheme}>
+          {currentTheme === "light" ? "🌙" : "☀️"}
+        </button>
+      </div>*/}
+      <div className="sidebar-inner">
+        <h2>Admin</h2>
+        <a
+          href="/admin"
+          className="no-hover"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "10px",
+            cursor: "default",
+          }}
+          onClick={(e) => handleTabClick(e, "/admin")}
+        >
+          <img
+            src="/src/assets/logo-bfp.jpg"
+            alt="Logo"
+            style={{
+              height: "30px",
+              width: "30px",
+              objectFit: "cover",
+              borderRadius: "50%",
+              marginRight: "10px",
+            }}
+          />
+          <span style={{ fontWeight: "800" }}>Villanueva FireStation</span>
+        </a>
+        <a
+          href="/admin"
+          onClick={(e) => handleTabClick(e, "/admin")}
+          className={`${isTabActive("/admin") ? "active" : ""}`}
+        >
+          🖥️ <span>Admin Dashboard</span>
+        </a>
+        {/* Regular tabs */}
+        <a
+          href="/leaveManagement"
+          onClick={(e) => handleTabClick(e, "/leaveManagement")}
+          className={`${isTabActive("/leaveManagement") ? "active" : ""}`}
+        >
+          🗓️ <span>Leave Management</span>
+        </a>
+        <a
+          href="/inventoryControl"
+          onClick={(e) => handleTabClick(e, "/inventoryControl")}
+          className={`${isTabActive("/inventoryControl") ? "active" : ""}`}
+        >
+          📦 <span>Inventory Control</span>
+        </a>
+        <a
+          href="/clearanceSystem"
+          onClick={(e) => handleTabClick(e, "/clearanceSystem")}
+          className={`${isTabActive("/clearanceSystem") ? "active" : ""}`}
+        >
+          🪪 <span>Clearance System</span>
+        </a>
+        <a
+          href="/personnelRegister"
+          onClick={(e) => handleTabClick(e, "/personnelRegister")}
+          className={`${isTabActive("/personnelRegister") ? "active" : ""}`}
+        >
+          🧑‍💼 <span>Personnel Register</span>
+        </a>
+        <a
+          href="/personnelRecentActivity"
+          onClick={(e) => handleTabClick(e, "/personnelRecentActivity")}
+        >
+          🕓 <span>Personnel Recent Activity</span>
+        </a>
+        {/* Dropdown sections - simplified */}
+        {dropdownSections.map((section) => (
+          <div
+            key={section.id}
+            className={`dropdown-section ${section.id}-records`}
+            onMouseEnter={(e) => handleDropdownHover(section, e)}
+            onMouseLeave={handleDropdownLeave}
+          >
+            <div className="dropdown-toggle">
+              {section.icon} <span>{section.title}</span>{" "}
+              <span className="arrow">▼</span>
+            </div>
+
+            {/* Only show dropdown content when expanded */}
+            {!isSidebarCollapsed && (
+              <div className="dropdown-content">
+                {section.items.map((item, index) => (
+                  <a
+                    key={index}
+                    href={item.href}
+                    className={isDropdownItemActive(item.href) ? "active" : ""}
+                  >
+                    {item.icon} <span>{item.text}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+
+        <a href="/logout" onClick={(e) => handleTabClick(e, "/logout")}>
+          🚪 <span>Logout</span>
+        </a>
+      </div>
+      {/*   {isSidebarCollapsed && tooltipContent && (
+        <div
+          className="dropdown-tooltip"
+          style={{
+            left: tooltipPosition.x,
+            top: tooltipPosition.y,
+          }}
+          onMouseEnter={handleTooltipEnter}
+          onMouseLeave={handleTooltipLeave}
+        >
+          <div className="tooltip-header">
+            <span>
+              {tooltipContent.icon} {tooltipContent.title}
+            </span>
+          </div>
+          <div className="tooltip-items">
+            {tooltipContent.items.map((item, index) => (
+              <a
+                key={index}
+                href={item.href}
+                className={isDropdownItemActive(item.href) ? "active" : ""}
+                onClick={() => handleTooltipItemClick(item.href)}
+              >
+                {item.icon} {item.text}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      Tooltip for collapsed state */}
+
+      {isSidebarCollapsed && tooltipContent && (
+        <div
+          className={`dropdown-tooltip ${tooltipContent.id}-records`}
+          style={{
+            left: tooltipPosition.x,
+            top: tooltipPosition.y,
+          }}
+          onMouseEnter={handleTooltipEnter}
+          onMouseLeave={handleTooltipLeave}
+        >
+          <div className="tooltip-header">
+            <span>
+              {tooltipContent.icon} {tooltipContent.title}
+            </span>
+          </div>
+          <div className="tooltip-items">
+            {tooltipContent.items.map((item, index) => (
+              <a
+                key={index}
+                href={item.href}
+                className={isDropdownItemActive(item.href) ? "active" : ""}
+                onClick={() => handleTooltipItemClick(item.href)}
+              >
+                {item.icon} {item.text}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Sidebar;
+
+
+
+/* ================================
+  HAMBURGER MENU
+=============================== */
+.hamburger {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  width: 36px;
+  height: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--bg-buttons);
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  z-index: 1110;
+  transition: background 0.3s ease;
+}
+
+.hamburger .bar {
+  width: 100%;
+  height: 4px;
+  background-color: white;
+  border-radius: 2px;
+  transition: all 0.4s ease;
+}
+
+.hamburger.active .top {
+  transform: translateY(10px) rotate(45deg);
+}
+
+.hamburger.active .middle {
+  opacity: 0;
+}
+
+.hamburger.active .bottom {
+  transform: translateY(-10px) rotate(-45deg);
+}
+
+/* ================================
+  THEME TOGGLE - MOVED INSIDE SIDEBAR
+=============================== */
+
+.sidebar.collapsed .dropdown-content.show {
+  display: block !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+}
+
+/* Optional: Style the dropdown toggle differently when it has an active child */
+.dropdown-toggle.has-active-child {
+  background-color: var(--active-color);
+  font-weight: bold;
+}
+
+.sidebar.collapsed .dropdown-section.active .dropdown-content {
+  display: none !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+
+  pointer-events: auto !important;
+}
+
+/* ================================================
+  DROPDOWN CONTENT BACKGROUNDS - BOTH COLLAPSED & UNCOLLAPSED
+================================================ */
+
+
+
+/* Enhanced dropdown content for collapsed state */
+.sidebar.collapsed .dropdown-content {
+  position: absolute;
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  top: -60px;
+  margin-right: -350px;
+  box-shadow: -6px 4px 15px rgba(0, 0, 0, 0.743);
+  z-index: 9999;
+}
+
+/* Ensure dropdown links show text even when collapsed */
+.sidebar.collapsed .dropdown-content a span {
+  display: inline !important;
+  color: white !important;
+}
+
+.sidebar .theme-toggle {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 1200;
+}
+
+.sidebar .theme-toggle button {
+  font-size: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  padding: 5px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar .theme-toggle button:hover {
+  transform: rotate(20deg) scale(1.1);
+  background: rgb(255, 255, 255);
+}
+
+/* Adjust sidebar padding to accommodate theme toggle */
+.sidebar {
+  width: 280px;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: rgb(219, 219, 219);
+  color: var(--text-primary);
+  padding-left: 10px;
+  padding-right: 17px;
+  padding-top: 70px; /* Increased to make space for theme toggle */
+  z-index: 1000;
+  overflow:visible !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4);
+  transition: background 0.3s ease, width 0.4s ease;
+  pointer-events: auto;
+
+}
+.sidebar-inner {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px; /* Space for scrollbar */
+  margin-right: -20px; /* Pull content to accommodate scrollbar */
+  
+  /* Hide scrollbar visually but keep functionality */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-buttons) transparent;
+}
+
+.sidebar-inner::-webkit-scrollbar {
+  width: 1px;
+}
+
+.sidebar-inner::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 10px 0;
+}
+
+.sidebar-inner::-webkit-scrollbar-thumb {
+  background: var(--bg-buttons);
+  border-radius: 4px;
+ 
+}
+
+.sidebar-inner::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-buttons_active);
+}
+
+/* When sidebar is collapsed, adjust theme toggle position */
+.sidebar.collapsed .theme-toggle {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  left: auto;
+}
+
+.sidebar.collapsed .theme-toggle button {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+}
+
+
+
+
+.sidebar h2 {
+  font-size: 22px;
+  color: black;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 10px;
+  font-weight: bold;
+  margin-top: 10px; /* Added space below theme toggle */
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  margin: 8px -1px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: rgba(255, 254, 254, 0.793);
+
+  border-left: 4px solid rgb(175, 175, 175);
+  border-bottom:4px solid rgb(175, 175, 175) ;
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+  
+}
+.sidebar a::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+
+  transition: all 0.4s ease;
+  z-index: 0;
+  border-radius: 10px;
+}
+
+.sidebar a:hover::before {
+  left: 0;
+}
+
+.sidebar a span,
+.sidebar a i {
+  position: relative;
+  z-index: 1;
+  
+}
+
+.sidebar a:hover {
+  color: #fff;
+  background: var(--bg-buttons_active);
+  transform: translateX(5px) scale(1.03);
+   box-shadow: 0 5px 2px rgba(89, 91, 93, 0.597);
+  border-left:4px solid white ;
+  border-bottom: 4px solid white;
+}
+
+/* ================================
+  NO-HOVER LINKS
+=============================== */
+.sidebar a.no-hover,
+.sidebar a.no-hover:hover {
+  background: none !important;
+  border: none !important;
+  color: #000 !important;
+  transform: none !important;
+  box-shadow: none !important;
+position: relative;
+width: 400px;
+
+}
+.sidebar.collapsed a.no-hover {
+position: relative;
+width: 400px;
+
+right: 175px;
+}
+.sidebar a.no-hover::before {
+  display: none !important;
+}
+
+/* Collapsed Sidebar */
+.sidebar.collapsed {
+  width: 100px;
+  overflow-x: hidden;
+}
+.sidebar.collapsed img{
+  position: relative;
+  left: 10px;
+
+}
+.sidebar.collapsed h2,
+.sidebar.collapsed img + span,
+.sidebar.collapsed a span,
+.sidebar.collapsed .dropdown-toggle span {
+
+
+  display: none;
+}
+
+.sidebar.collapsed a,
+.sidebar.collapsed .dropdown-toggle {
+  justify-content: center;
+}
+
+/* ================================
+  DROPDOWN MODULES - FIXED VERSION
+=============================== */
+.dropdown-section {
+  position: relative;
+}
+
+.dropdown-toggle {
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 8px 0;
+  color: var(--text-primary);
+  background: rgb(255, 255, 255);
+  transition: all 0.35s ease-in-out;
+  position: relative;
+  z-index: 100;
+}
+
+
+/* ================================================
+  DROPDOWN CONTENT - FIXED FOR COLLAPSED STATE
+================================================ */
+.personnel-records .dropdown-content a {
+  background: rgba(184, 6, 212, 0.85);
+  margin-bottom: 5px;
+  border-left: 4px solid rgb(255, 255, 255) !important;
+  border-bottom: 4px solid rgb(255, 255, 255) !important;
+}
+.personnel-records .dropdown-content a:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  border-left: 4px solid rgb(242, 0, 234) !important;
+   border-bottom: 4px solid rgb(242, 0, 234) !important;
+}
+.morale-records .dropdown-content a {
+  background: rgba(255, 2, 82, 0.85);
+  border-left: 4px solid rgb(255, 255, 255) !important;
+   border-bottom: 4px solid rgb(255, 255, 255) !important;
+  margin-bottom: 5px;
+}
+.morale-records .dropdown-content a:hover {
+  background: rgba(255, 2, 82, 0.85);
+  border-left: 4px solid rgba(152, 1, 49, 0.85) !important;
+  border-bottom: 4px solid rgba(152, 1, 49, 0.85) !important;
+  margin-bottom: 5px;
+}
+.hr-records .dropdown-content a {
+  background: rgb(0, 98, 255);
+  border-left: 4px solid rgb(255, 255, 255) !important;
+   border-bottom: 4px solid rgb(255, 255, 255) !important;
+  margin-bottom: 5px;
+}
+.hr-records .dropdown-content a:hover {
+  background: rgb(0, 98, 255);
+  border-left: 4px solid rgba(0, 52, 136, 0.85) !important;
+   border-bottom: 4px solid rgba(0, 52, 136, 0.85) !important;
+}
+.personnel-records .dropdown-content {
+ background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  position: absolute;
+  top: -45px;
+
+}
+.morale-records .dropdown-content {
+ background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+
+  position: absolute;
+  top: 4px;
+  width: 289px;
+}
+.hr-records .dropdown-content {
+ background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  transition: all 0.35s ease;
+  position: absolute;
+  top: -25px;
+}
+
+.hr-records .dropdown-toggle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -70%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  opacity: 0.3;
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+
+/* Sweep across on hover */
+.hr-records .dropdown-toggle:hover::before {
+  left: 130%;
+}
+
+/* Subtle floating pulse (blue glow) */
+.hr-records .dropdown-toggle:hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+  animation: floatPulse 2s ease-in-out infinite alternate;
+}
+
+/* Floating pulse animation */
+@keyframes floatPulse {
+  from {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    transform: translateY(0);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.7);
+    transform: translateY(-2px);
+  }
+}
+.dropdown-section:hover .dropdown-content,
+.dropdown-content.show {
+  display: block;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+
+/* Dropdown links styling */
+.dropdown-content a {
+  display: flex;
+
+  gap: 10px;
+  color: white !important;
+  padding: 10px 15px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  margin: 0 5px;
+  width: calc(100% - 10px);
+  font-weight: 500;
+}
+.dropdown-content,
+.dropdown-tooltip {
+  position:fixed!important; /* Use fixed instead of absolute */
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  width: 324px!important;
+
+
+}
+/* Rotate arrow */
+.dropdown-section:hover .arrow {
+  transform: rotate(270deg);
+  transition: transform 0.3s ease;
+}
+
+
+
+.tooltip-items {
+  padding: 1px 0;
+}
+.morale-records .dropdown-tooltip {
+  position: absolute;
+  margin-right: -100px;
+  border-radius: 12px;
+  padding: 0;
+  left: 100px;
+  padding-top: 10px;
+  margin-top: -10px;
+  min-width: 280px;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+
+.hr-records.dropdown-tooltip {
+  position: absolute;
+  margin-right: -100px;
+  border-radius: 12px;
+  padding: 0;
+  left: 10px;
+
+  margin-top: -190px !important;
+  min-width: 280px;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tooltip-header {
+  padding: 12px 16px;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+.tooltip-items a {
+  display: flex;
+
+  gap: 12px;
+
+  padding: 10px 16px;
+
+  color: white;
+  transition: all 0.2s ease;
+width: 300px!important;
+  margin: 2px 4px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+.dropdown-tooltip {
+  position: absolute;
+  margin-right: -100px;
+  border-radius: 12px;
+  padding: 0;
+  left: 100px;
+
+  margin-top: -91px;
+  min-width: 300px;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+.personnel-records .tooltip-header {
+   background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+}
+
+
+
+.morale-records .tooltip-header {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2);
+}
+
+
+
+.hr-records .tooltip-header {
+  background: linear-gradient(135deg, #0665ff, #2563eb);
+}
+.personnel-records .dropdown-toggle {
+  background: rgba(255, 0, 255, 0.228);
+  border-left: 4px solid rgb(242, 0, 234);
+   border-bottom: 4px solid rgb(242, 0, 234);
+}
+
+.personnel-records .dropdown-toggle:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  animation: pulseGlow 1.6s ease-in-out infinite;
+}
+
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(255, 0, 204, 0.703);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(255, 2, 204, 0.991);
+  }
+}
+
+.morale-records .dropdown-toggle {
+  background: rgba(255, 99, 132, 0.15);
+  border-left: 4px solid #ff6384;
+   border-bottom: 4px solid #ff6384;
+}
+
+.morale-records .dropdown-toggle:hover {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2);
+  color: #fff;
+   border-left: 4px solid #d32e52;
+   border-bottom: 4px solid #d32e52;
+  box-shadow: 0 0 18px rgba(255, 99, 132, 0.6);
+  animation: heartbeat 1.4s ease-in-out infinite;
+  transform: translateY(-2px) scale(2.03);
+}
+
+@keyframes heartbeat {
+  0%,
+  100% {
+    transform: scale(1.04);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* === HR RECORDS === */
+.hr-records .dropdown-toggle {
+  background: rgba(59, 130, 246, 0.12);
+  border-left: 4px solid #3b82f6;
+   border-bottom: 4px solid #3b82f6;
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s ease;
+}
+
+.hr-records .dropdown-toggle:hover {
+  color: #fff;
+   border-left: 4px solid #234f96;
+   border-bottom: 4px solid #234f96;
+  background: linear-gradient(135deg, #0280ff, #0004fb);
+  box-shadow: 0 0 22px rgba(0, 255, 225, 0.772);
+}
+
+/* ================================================
+  COLLAPSED SIDEBAR TOOLTIP ITEM BACKGROUND COLORS - FIXED
+================================================ */
+
+/* Personnel Records Tooltip Items - RED */
+
+.dropdown-content {
+  position:fixed !important;
+  left: 250px !important; /* Position relative to sidebar width */
+  top: 23px;
+  margin-top: 380px;
+  margin-left: 5px;
+  width: 310px!important;
+  border-radius: 8px;
+  box-shadow: 6px 4px 15px rgba(0, 0, 0, 0.743);
+  padding: 8px 0;
+  display: none;
+  opacity: 0;
+ 
+  transform: translateX(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+}
+.sidebar.collapsed .personnel-records.dropdown-tooltip .tooltip-items {
+background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  margin-bottom: 7px;
+
+}
+.sidebar.collapsed .morale-records.dropdown-tooltip .tooltip-items {
+background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  border-radius: 5px;
+  margin-bottom: 7px;
+}
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items {
+background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  margin-bottom: 11px;
+
+  text-align: left;
+}
+
+.sidebar.collapsed .personnel-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(148, 0, 211, 0.9)
+  );
+  border-left: 4px solid rgb(255, 255, 255);
+   border-bottom: 4px solid rgb(255, 255, 255);
+}
+
+.sidebar.collapsed .personnel-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  border-left: 4px solid rgb(242, 0, 234) !important;
+   border-bottom: 4px solid rgb(242, 0, 234) !important;
+  animation: pulseGlow 1.6s ease-in-out infinite;
+}
+
+/* Morale & Welfare Tooltip Items - BLUE */
+
+.sidebar.collapsed .morale-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(135deg, #ff6384, #e6091b);
+  border-left: 4px solid #ffffff;
+ border-bottom: 4px solid #ffffff;
+  width: 280px;
+}
+.sidebar.collapsed .morale-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2) !important;
+  border-left: 4px solid #ff6384 !important;
+    border-bottom: 4px solid #ff6384 !important;
+  animation: heartbeat 1.4s ease-in-out infinite;
+  transform: translateY(-2px) scale(1.1);
+}
+
+/* HR Management Tooltip Items - GREEN */
+
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(135deg, #0280ff, #0004fb);
+  border-left: 4px solid #ffffff;
+   border-bottom: 4px solid #ffffff;
+  width: 280px;
+
+}
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(135deg, #0280ff, #0004fb) !important;
+  border-left: 4px solid #3b82f6 !important;
+  border-bottom: 4px solid #3b82f6 !important;
+}
+
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:before {
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 255, 255, 0.803),
+    transparent
+  );
+  opacity: 0.3;
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:hover::before {
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgb(255, 255, 255),
+    transparent
+  );
+  opacity: 0.3;
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  left: 230px;
+}
+
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+  animation: floatPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes floatPulse {
+  from {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    transform: translateY(0);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.7);
+    transform: translateY(-2px);
+  }
+}
+
+
+
+.header p {
+  color: #333;
+  font-size: 16px;
+}
+
+.dropdown-section::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: 100px;
+  height: 100%;
+  width: 10px;
+  z-index: 9998;
+}
+
+.sidebar a.active {
+  background: rgb(255, 255, 255) !important;
+  color: #000000 !important;
+  font-weight: bold;
+  transform: translateX(5px);
+  box-shadow: 0 5px 2px rgba(16, 95, 175, 0.597);
+  border-left: 4px solid var(--bg-buttons) !important;
+  border-bottom: 4px solid var(--bg-buttons)!important;
+}
+
+
+
+
+.main-content {
+  margin-left: calc(var(--sidebar-width) + 10px);
+  padding: 28px 20px;
+  box-sizing: border-box;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+    background: rgb(219, 219, 219);
+  padding-left: 300px;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  /* cubic-bezier for smoother acceleration/deceleration */
+}
+
+.main-content.collapsed {
+  margin-left: 80px;
+  padding-left: 40px;
+  margin-top: 0px;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
