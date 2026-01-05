@@ -6,7 +6,7 @@ import "flatpickr/dist/flatpickr.css";
 import InspectorSidebar from "../../InspectorSidebar";
 import Hamburger from "../../Hamburger";
 import { useSidebar } from "../../SidebarContext";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "../../../lib/supabaseClient.js";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Html5QrcodeScanner } from "html5-qrcode";
@@ -19,7 +19,9 @@ const InspectorEquipmentInspection = () => {
   const [pendingClearances, setPendingClearances] = useState([]);
   const [personnelList, setPersonnelList] = useState([]);
   const [pendingInspectionsMap, setPendingInspectionsMap] = useState({});
-
+  // Add these loading states with your other useState declarations:
+  const [isInspecting, setIsInspecting] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
   const [recentSearch, setRecentSearch] = useState("");
   const [recentFilterCategory, setRecentFilterCategory] = useState("");
   const [recentFilterStatus, setRecentFilterStatus] = useState("");
@@ -29,7 +31,8 @@ const InspectorEquipmentInspection = () => {
   const [showInspectModal, setShowInspectModal] = useState(false);
   const [showClearanceModal, setShowClearanceModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   const [selectedClearance, setSelectedClearance] = useState(null);
   const [selectedEquipment, setSelectedEquipment] = useState([]);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
@@ -78,6 +81,26 @@ const InspectorEquipmentInspection = () => {
     documentFile: null,
     equipmentStatus: "Good",
   });
+  
+  // Add this helper function for name formatting
+  const formatPersonnelName = (personnel) => {
+    if (!personnel) return "Unknown";
+    
+    const { first_name, middle_name, last_name } = personnel;
+    
+    if (!first_name && !last_name) return "Unknown";
+    
+    // Format: FirstName + MiddleInitial + LastName
+    if (middle_name && middle_name.trim()) {
+      // Get first letter of middle name and capitalize it
+      const middleInitial = middle_name.trim().charAt(0).toUpperCase();
+      return `${first_name || ''} ${middleInitial}. ${last_name || ''}`.trim();
+    } else {
+      // No middle name, just use first and last
+      return `${first_name || ''} ${last_name || ''}`.trim();
+    }
+  };
+
   // Open View Details Modal for Recent Inspections
   const openRecentViewModal = (inspection) => {
     setSelectedRecentInspection(inspection);
@@ -100,7 +123,109 @@ const InspectorEquipmentInspection = () => {
     });
     return Array.from(categories).sort();
   };
+  
+  // Real-time subscription for pending clearances
+  useEffect(() => {
+    let subscription;
 
+    const setupRealtime = async () => {
+      try {
+        // Subscribe to clearance_inventory table changes
+        subscription = supabase
+          .channel("clearance_inventory_changes")
+          .on(
+            "postgres_changes",
+            {
+              event: "*", // Listen to INSERT, UPDATE, DELETE
+              schema: "public",
+              table: "clearance_inventory",
+              filter: "status=eq.Pending",
+            },
+            (payload) => {
+              console.log("Clearance inventory change detected:", payload);
+              // Refresh pending clearances when any change occurs
+              loadPendingClearances();
+
+              // Also refresh other data that might be affected
+              loadAllData();
+
+              // Optional: Show notification for new clearances
+              if (payload.eventType === "INSERT") {
+                toast.info("New pending clearance added");
+              }
+            }
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "clearance_requests",
+              filter: "status=eq.Pending",
+            },
+            (payload) => {
+              console.log("Clearance request change detected:", payload);
+              // Refresh when clearance request status changes
+              loadPendingClearances();
+            }
+          )
+          .subscribe((status) => {
+            console.log("Realtime subscription status:", status);
+            setIsRealtimeConnected(status === "SUBSCRIBED");
+
+            if (status === "CHANNEL_ERROR") {
+              console.error("Realtime channel error");
+              // Fallback to polling
+              startPollingFallback();
+            }
+          });
+      } catch (error) {
+        console.error("Error setting up realtime:", error);
+        // Fallback to polling if realtime fails
+        startPollingFallback();
+      }
+    };
+
+    setupRealtime();
+
+    // Cleanup function
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+      stopPollingFallback();
+    };
+  }, []); // Empty dependency array - only run once on mount
+
+  // Polling fallback state and functions
+  const [pollingInterval, setPollingInterval] = useState(null);
+
+  const startPollingFallback = () => {
+    console.log("Starting polling fallback for pending clearances");
+
+    // Clear any existing interval
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
+    // Poll every 30 seconds
+    const interval = setInterval(() => {
+      console.log("Polling for pending clearance updates...");
+      loadPendingClearances();
+      // Optional: refresh counter for UI indication
+      setRefreshCounter((prev) => prev + 1);
+    }, 30000); // 30 seconds
+
+    setPollingInterval(interval);
+  };
+
+  const stopPollingFallback = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  };
+  
   // Add this function to get unique equipment statuses from recent inspections
   const getRecentEquipmentStatuses = () => {
     const statuses = new Set();
@@ -165,17 +290,7 @@ const InspectorEquipmentInspection = () => {
     recentFilterStatus,
     recentFilterResult,
   ]);
-  /*
-  const recentTotalPages = Math.max(
-    1,
-    Math.ceil(filteredRecentInspections.length / rowsPerPage)
-  );
-  const recentStart = (recentCurrentPage - 1) * rowsPerPage;
-  const paginatedRecent = filteredRecentInspections.slice(
-    recentStart,
-    recentStart + rowsPerPage
-  );
-*/
+
   // Add a function to reset recent filters
   const resetRecentFilters = () => {
     setRecentSearch("");
@@ -201,10 +316,6 @@ const InspectorEquipmentInspection = () => {
   };
 
   // Checkup state
-  const [checkupData, setCheckupData] = useState({
-    findings: "",
-    status: "Good",
-  });
 
   // Equipment table for schedule creation
   const [selectedEquipmentForSchedule, setSelectedEquipmentForSchedule] =
@@ -271,24 +382,31 @@ const InspectorEquipmentInspection = () => {
   }, [scheduledInspections]);
 
   // Philippine Time functions
-  const getTodayInPST = () => {
-    const now = new Date();
-    const pstTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    return pstTime.toISOString().split("T")[0];
+  // Replace your existing date comparison functions with these simpler versions
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
+  // Simple check for display purposes only
   const isScheduleToday = (scheduleDate) => {
     if (!scheduleDate) return false;
-    const todayPST = getTodayInPST();
-    return scheduleDate === todayPST;
+    const today = getTodayDate();
+    const scheduleDateOnly = scheduleDate.split("T")[0];
+    return scheduleDateOnly === today;
   };
 
+  // Simple check for display purposes only
   const isScheduleFuture = (scheduleDate) => {
     if (!scheduleDate) return false;
-    const todayPST = getTodayInPST();
-    return scheduleDate > todayPST;
+    const today = getTodayDate();
+    const scheduleDateOnly = scheduleDate.split("T")[0];
+    return scheduleDateOnly > today;
   };
-
+  
   // Function to check if equipment is in pending clearance
   // Replace the existing checkEquipmentClearanceStatus function with this:
   const checkEquipmentClearanceStatus = async (inventoryIds) => {
@@ -450,7 +568,7 @@ const InspectorEquipmentInspection = () => {
         assigned_date,   
         last_assigned,     
         unassigned_date,   
-        personnel:assigned_personnel_id(first_name, last_name, badge_number)
+        personnel:assigned_personnel_id(first_name, middle_name, last_name, badge_number)
       `
         )
         .order("item_name");
@@ -481,6 +599,7 @@ const InspectorEquipmentInspection = () => {
         inspector_id,
         inspector:inspector_id (
           first_name,
+          middle_name,
           last_name,
           badge_number
         )
@@ -519,14 +638,17 @@ const InspectorEquipmentInspection = () => {
           const assignedPersonnelId =
             inventoryItem?.assigned_personnel_id || null;
 
+          // Format inspector name with middle initial
+          const inspectorName = inspection.inspector
+            ? formatPersonnelName(inspection.inspector)
+            : "Unknown Inspector";
+
           return {
             ...inspection,
             equipment_name: inventoryItem?.item_name || "Unknown Equipment",
             equipment_id: inspection.equipment_id,
             item_code: inventoryItem?.item_code,
-            inspector_name: inspection.inspector
-              ? `${inspection.inspector.first_name} ${inspection.inspector.last_name}`
-              : "Unknown Inspector",
+            inspector_name: inspectorName,
             assigned_to: inventoryItem?.assigned_to || "Unassigned",
             scheduled_date: inspection.schedule_inspection_date,
             schedule_inspection_date: inspection.schedule_inspection_date,
@@ -563,6 +685,7 @@ const InspectorEquipmentInspection = () => {
         recommendations,
         inspector:inspector_id (
           first_name,
+          middle_name,
           last_name
         )
       `
@@ -595,6 +718,11 @@ const InspectorEquipmentInspection = () => {
               .eq("id", insp.equipment_id)
               .single();
 
+            // Format inspector name with middle initial
+            const inspectorName = insp.inspector
+              ? formatPersonnelName(insp.inspector)
+              : "Unknown";
+
             return {
               id: insp.id,
               item_code: inventoryItem?.item_code || "N/A",
@@ -604,9 +732,7 @@ const InspectorEquipmentInspection = () => {
               equipment_assigned_date: inventoryItem?.assigned_date || null,
               equipment_last_checked: inventoryItem?.last_checked || null,
               last_checked: formatDate(insp.schedule_inspection_date),
-              inspector: insp.inspector
-                ? `${insp.inspector.first_name} ${insp.inspector.last_name}`
-                : "Unknown",
+              inspector: inspectorName,
               status: insp.status === "COMPLETED" ? "PASS" : "FAIL",
               schedule_status: insp.schedule_status || "UPCOMING",
               findings: insp.findings || "",
@@ -626,9 +752,13 @@ const InspectorEquipmentInspection = () => {
       setIsLoading(false);
     }
   };
-  // Load pending clearances
-  // Update the grouping logic in loadPendingClearances:
+  
+  // Add loading state for clearances
+  const [isLoadingClearances, setIsLoadingClearances] = useState(false);
+
+  // Update the loadPendingClearances function
   const loadPendingClearances = async () => {
+    setIsLoadingClearances(true);
     try {
       console.log("Loading pending clearance inspections...");
 
@@ -651,6 +781,7 @@ const InspectorEquipmentInspection = () => {
           created_at, 
           personnel:personnel_id (
             first_name,
+            middle_name,
             last_name,
             badge_number
           )
@@ -700,11 +831,7 @@ const InspectorEquipmentInspection = () => {
             type: request.type,
             request_status: request.status,
             request_created_at: request.created_at,
-            personnel_name: request.personnel
-              ? `${request.personnel.first_name || ""} ${
-                  request.personnel.last_name || ""
-                }`.trim()
-              : "Unknown",
+            personnel_name: formatPersonnelName(request.personnel),
             badge_number: request.personnel?.badge_number || "N/A",
             equipment_count: 0,
             equipment_items: [],
@@ -758,9 +885,14 @@ const InspectorEquipmentInspection = () => {
         "Pending clearance inspections loaded:",
         equipmentClearances.length
       );
+
+      // Store the last update time
+      localStorage.setItem("lastClearanceUpdate", new Date().toISOString());
     } catch (error) {
       console.error("Error loading pending clearances:", error);
       setPendingClearances([]);
+    } finally {
+      setIsLoadingClearances(false);
     }
   };
 
@@ -768,11 +900,18 @@ const InspectorEquipmentInspection = () => {
     try {
       const { data, error } = await supabase
         .from("personnel")
-        .select("id, first_name, last_name, badge_number")
+        .select("id, first_name, middle_name, last_name, badge_number")
         .order("last_name", { ascending: true });
 
       if (error) throw error;
-      setPersonnelList(data || []);
+      
+      // Format names with middle initials for dropdown display
+      const formattedPersonnel = (data || []).map(person => ({
+        ...person,
+        display_name: formatPersonnelName(person)
+      }));
+      
+      setPersonnelList(formattedPersonnel || []);
     } catch (error) {
       console.error("Error loading personnel:", error);
     }
@@ -846,6 +985,7 @@ const InspectorEquipmentInspection = () => {
           *,
           personnel:personnel_id (
             first_name,
+            middle_name,
             last_name,
             badge_number,
             rank
@@ -856,6 +996,8 @@ const InspectorEquipmentInspection = () => {
         .single();
 
       if (requestError) throw requestError;
+
+      const formattedName = formatPersonnelName(requestData.personnel);
 
       const { data: inventoryData, error: inventoryError } = await supabase
         .from("clearance_inventory")
@@ -907,9 +1049,7 @@ const InspectorEquipmentInspection = () => {
 
       setSelectedClearance({
         ...requestData,
-        personnel_name: requestData.personnel
-          ? `${requestData.personnel.first_name} ${requestData.personnel.last_name}`.trim()
-          : "Unknown",
+        personnel_name: formattedName,
         badge_number: requestData.personnel?.badge_number || "N/A",
         rank: requestData.personnel?.rank || "N/A",
       });
@@ -1041,166 +1181,156 @@ const InspectorEquipmentInspection = () => {
     });
   };
 
-const getAssignedPersonnel = () => {
-  const personnelSet = new Set();
-  inventoryItems.forEach((item) => {
-    if (item.assigned_to && item.assigned_to !== "Unassigned") {
-      // Clean up names - remove extra spaces
-      const cleanName = item.assigned_to.trim().replace(/\s+/g, " ");
-      personnelSet.add(cleanName);
+  const getAssignedPersonnel = () => {
+    const personnelSet = new Set();
+    inventoryItems.forEach((item) => {
+      if (item.assigned_to && item.assigned_to !== "Unassigned") {
+        // Clean up names - remove extra spaces
+        const cleanName = item.assigned_to.trim().replace(/\s+/g, " ");
+        personnelSet.add(cleanName);
+      }
+    });
+
+    // Sort by last name if possible
+    return Array.from(personnelSet).sort((a, b) => {
+      const aParts = a.split(" ");
+      const bParts = b.split(" ");
+      const aLastName = aParts[aParts.length - 1];
+      const bLastName = bParts[bParts.length - 1];
+      return aLastName.localeCompare(bLastName);
+    });
+  };
+
+  const handleCreateSchedule = async () => {
+    console.log("DEBUG: Selected equipment IDs:", selectedEquipmentForSchedule);
+    console.log("DEBUG: Inventory items:", inventoryItems);
+
+    if (selectedEquipmentForSchedule.length === 0) {
+      toast.error("Please select at least one equipment");
+      return;
     }
-  });
 
-  // Sort by last name if possible
-  return Array.from(personnelSet).sort((a, b) => {
-    const aParts = a.split(" ");
-    const bParts = b.split(" ");
-    const aLastName = aParts[aParts.length - 1];
-    const bLastName = bParts[bParts.length - 1];
-    return aLastName.localeCompare(bLastName);
-  });
-};
-  
-const handleCreateSchedule = async () => {
-  console.log("DEBUG: Selected equipment IDs:", selectedEquipmentForSchedule);
-  console.log("DEBUG: Inventory items:", inventoryItems);
+    if (!formData.scheduled_date || !formData.inspector_id) {
+      toast.error("Please fill all required fields");
+      return;
+    }
 
-  const pendingMap = await checkEquipmentHasPendingInspection(
-    selectedEquipmentForSchedule
-  );
-
-  console.log("DEBUG: Pending map returned:", pendingMap);
-
-  const equipmentWithPendingInspections = selectedEquipmentForSchedule.filter(
-    (equipId) => pendingMap[equipId]
-  );
-
-  console.log(
-    "DEBUG: Equipment with pending inspections:",
-    equipmentWithPendingInspections
-  );
-  if (selectedEquipmentForSchedule.length === 0) {
-    toast.error("Please select at least one equipment");
-    return;
-  }
-
-  if (!formData.scheduled_date || !formData.inspector_id) {
-    toast.error("Please fill all required fields");
-    return;
-  }
-
-  try {
-    const pendingMap = await checkEquipmentHasPendingInspection(
-      selectedEquipmentForSchedule
-    );
-
-    const equipmentWithPendingInspections = selectedEquipmentForSchedule.filter(
-      (equipId) => pendingMap[equipId]
-    );
-
-    if (equipmentWithPendingInspections.length > 0) {
-      const equipmentNames = equipmentWithPendingInspections
-        .map((equipId) => {
-          const item = inventoryItems.find((item) => item.id === equipId);
-          return item?.item_name || `ID: ${equipId}`;
-        })
-        .join(", ");
-
-      toast.error(
-        `Cannot schedule inspection. The following equipment already have pending inspections: ${equipmentNames}`
+    setIsScheduling(true); // Start loading
+    try {
+      const pendingMap = await checkEquipmentHasPendingInspection(
+        selectedEquipmentForSchedule
       );
-      return;
-    }
 
-    const selectedInspector = personnelList.find(
-      (person) => person.id === formData.inspector_id
-    );
+      const equipmentWithPendingInspections =
+        selectedEquipmentForSchedule.filter((equipId) => pendingMap[equipId]);
 
-    if (!selectedInspector) {
-      toast.error("Selected inspector not found");
-      return;
-    }
+      if (equipmentWithPendingInspections.length > 0) {
+        const equipmentNames = equipmentWithPendingInspections
+          .map((equipId) => {
+            const item = inventoryItems.find((item) => item.id === equipId);
+            return item?.item_name || `ID: ${equipId}`;
+          })
+          .join(", ");
 
-    const inspectorName = `${selectedInspector.first_name} ${selectedInspector.last_name}`;
+        toast.error(
+          `Cannot schedule inspection. The following equipment already have pending inspections: ${equipmentNames}`
+        );
+        setIsScheduling(false);
+        return;
+      }
 
-    // Get clearance request IDs for each equipment - GET ALL, NOT JUST FIRST ONE
-    const schedules = await Promise.all(
-      selectedEquipmentForSchedule.map(async (equipId) => {
-        // Check for ALL pending clearance requests for this equipment
-        const { data: clearanceData, error: clearanceError } = await supabase
-          .from("clearance_inventory")
-          .select("clearance_request_id")
-          .eq("inventory_id", equipId)
-          .eq("status", "Pending");
+      const selectedInspector = personnelList.find(
+        (person) => person.id === formData.inspector_id
+      );
 
-        let clearanceRequestId = null;
+      if (!selectedInspector) {
+        toast.error("Selected inspector not found");
+        setIsScheduling(false);
+        return;
+      }
 
-        // If there are multiple clearance requests, we need to handle them differently
-        if (!clearanceError && clearanceData && clearanceData.length > 0) {
-          // If there's only one clearance request, store it
-          if (clearanceData.length === 1) {
-            clearanceRequestId = clearanceData[0].clearance_request_id;
-            console.log(
-              `Found clearance request ${clearanceRequestId} for equipment ${equipId}`
-            );
-          } else {
-            // If there are multiple clearance requests, store the first one
-            // and log that there are multiple
-            clearanceRequestId = clearanceData[0].clearance_request_id;
-            console.log(
-              `Found ${clearanceData.length} clearance requests for equipment ${equipId}. Using first one: ${clearanceRequestId}`
-            );
-            console.log(
-              "All clearance request IDs:",
-              clearanceData.map((c) => c.clearance_request_id)
-            );
+      const inspectorName = formatPersonnelName(selectedInspector);
+
+      // Get clearance request IDs for each equipment - GET ALL, NOT JUST FIRST ONE
+      const schedules = await Promise.all(
+        selectedEquipmentForSchedule.map(async (equipId) => {
+          // Check for ALL pending clearance requests for this equipment
+          const { data: clearanceData, error: clearanceError } = await supabase
+            .from("clearance_inventory")
+            .select("clearance_request_id")
+            .eq("inventory_id", equipId)
+            .eq("status", "Pending");
+
+          let clearanceRequestId = null;
+
+          // If there are multiple clearance requests, we need to handle them differently
+          if (!clearanceError && clearanceData && clearanceData.length > 0) {
+            // If there's only one clearance request, store it
+            if (clearanceData.length === 1) {
+              clearanceRequestId = clearanceData[0].clearance_request_id;
+              console.log(
+                `Found clearance request ${clearanceRequestId} for equipment ${equipId}`
+              );
+            } else {
+              // If there are multiple clearance requests, store the first one
+              // and log that there are multiple
+              clearanceRequestId = clearanceData[0].clearance_request_id;
+              console.log(
+                `Found ${clearanceData.length} clearance requests for equipment ${equipId}. Using first one: ${clearanceRequestId}`
+              );
+              console.log(
+                "All clearance request IDs:",
+                clearanceData.map((c) => c.clearance_request_id)
+              );
+            }
           }
-        }
 
-        return {
-          equipment_id: equipId,
-          inspector_id: formData.inspector_id,
-          inspector_name: inspectorName,
-          schedule_inspection_date: formData.scheduled_date,
-          reschedule_inspection_date: formData.scheduled_date,
-          status: "PENDING",
-          clearance_request_id: clearanceRequestId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-      })
-    );
-
-    console.log("Schedules to create:", schedules);
-
-    const { data, error } = await supabase
-      .from("inspections")
-      .insert(schedules)
-      .select();
-
-    if (error) {
-      console.error("Insert error:", error);
-      throw error;
-    }
-
-    toast.success(`Successfully scheduled ${schedules.length} inspection(s)`);
-
-    // Hide form on success
-    setShowScheduleForm(false);
-    resetScheduleForm();
-    loadAllData();
-  } catch (error) {
-    console.error("Error creating schedule:", error);
-    toast.error("Failed to create schedule: " + error.message);
-
-    if (error.message.includes("foreign key")) {
-      toast.error(
-        "Database constraint error. Please check if the equipment or inspector exists."
+          return {
+            equipment_id: equipId,
+            inspector_id: formData.inspector_id,
+            inspector_name: inspectorName,
+            schedule_inspection_date: formData.scheduled_date,
+            reschedule_inspection_date: formData.scheduled_date,
+            status: "PENDING",
+            clearance_request_id: clearanceRequestId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+        })
       );
-    }
-  }
-};
 
+      console.log("Schedules to create:", schedules);
+
+      const { data, error } = await supabase
+        .from("inspections")
+        .insert(schedules)
+        .select();
+
+      if (error) {
+        console.error("Insert error:", error);
+        throw error;
+      }
+
+      toast.success(`Successfully scheduled ${schedules.length} inspection(s)`);
+
+      // Hide form on success
+      setShowScheduleForm(false);
+      resetScheduleForm();
+      loadAllData();
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      toast.error("Failed to create schedule: " + error.message);
+
+      if (error.message.includes("foreign key")) {
+        toast.error(
+          "Database constraint error. Please check if the equipment or inspector exists."
+        );
+      }
+    } finally {
+      setIsScheduling(false); // Stop loading
+    }
+  };
+  
   const checkEquipmentHasPendingInspection = async (equipmentIds) => {
     try {
       if (!equipmentIds || equipmentIds.length === 0) {
@@ -1230,15 +1360,6 @@ const handleCreateSchedule = async () => {
     }
   };
 
-  const handleCheckup = (inspection) => {
-    setSelectedSchedule(inspection);
-    setCheckupData({
-      findings: "",
-      status: "Good",
-    });
-    setShowCheckupModal(true);
-  };
-
   const handleInspect = (inspection) => {
     setSelectedSchedule(inspection);
     setInspectionData({
@@ -1250,408 +1371,304 @@ const handleCreateSchedule = async () => {
     setShowInspectModal(true);
   };
 
-  const submitCheckup = async () => {
-    if (!checkupData.findings) {
+  const checkAndUpdateClearanceStatus = async (
+    equipmentId,
+    clearanceStatus
+  ) => {
+    try {
+      // Get all clearance_inventory records for this equipment
+      const { data: clearanceRecords, error } = await supabase
+        .from("clearance_inventory")
+        .select("clearance_request_id, personnel_id, status")
+        .eq("inventory_id", equipmentId)
+        .eq("status", "Pending");
+
+      if (error) throw error;
+
+      if (clearanceRecords && clearanceRecords.length > 0) {
+        // Group by clearance request
+        const requestsMap = {};
+        clearanceRecords.forEach((record) => {
+          if (!requestsMap[record.clearance_request_id]) {
+            requestsMap[record.clearance_request_id] = {
+              requestId: record.clearance_request_id,
+              personnelId: record.personnel_id,
+              items: [],
+            };
+          }
+          requestsMap[record.clearance_request_id].items.push({
+            originalStatus: record.status,
+            newStatus: clearanceStatus,
+          });
+        });
+
+        // Update each clearance request
+        for (const requestId in requestsMap) {
+          const request = requestsMap[requestId];
+
+          // Get all items for this clearance request
+          const { data: allItems, error: itemsError } = await supabase
+            .from("clearance_inventory")
+            .select("status")
+            .eq("clearance_request_id", requestId);
+
+          if (itemsError) continue;
+
+          // Count statuses
+          const total = allItems.length;
+          const cleared = allItems.filter(
+            (item) => item.status === "Cleared"
+          ).length;
+          const pending = allItems.filter(
+            (item) => item.status === "Pending"
+          ).length;
+          const damaged = allItems.filter(
+            (item) => item.status === "Damaged"
+          ).length;
+          const lost = allItems.filter((item) => item.status === "Lost").length;
+
+          let newRequestStatus = "In Progress";
+
+          if (pending === 0 && damaged === 0 && lost === 0) {
+            // All items cleared
+            newRequestStatus = "Pending for Approval";
+          } else if (damaged > 0 || lost > 0) {
+            // Check if accountability is settled
+            const { data: accountabilityData } = await supabase
+              .from("personnel_equipment_accountability_table")
+              .select("accountability_status")
+              .eq("personnel_id", request.personnelId)
+              .eq("clearance_request_id", requestId)
+              .maybeSingle();
+
+            if (accountabilityData?.accountability_status === "SETTLED") {
+              newRequestStatus = "Pending for Approval";
+            } else {
+              newRequestStatus = "In Progress";
+            }
+          }
+
+          // Update clearance request status
+          const { error: updateError } = await supabase
+            .from("clearance_requests")
+            .update({
+              status: newRequestStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", requestId);
+
+          if (!updateError) {
+            console.log(
+              `✅ Updated clearance request ${requestId} to ${newRequestStatus}`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error updating clearance status:", error);
+    }
+  };
+  
+  const submitInspection = async () => {
+    if (!inspectionData.findings) {
       toast.error("Please enter findings");
       return;
     }
 
+    setIsInspecting(true); // Start loading
     try {
+      const inspectorName = selectedSchedule.inspector_name;
+      const inspectorId = selectedSchedule.inspector_id;
+
+      if (!inspectorId) {
+        toast.error("No inspector assigned to this inspection");
+        setIsInspecting(false);
+        return;
+      }
+
+      console.log("=== STARTING INSPECTION ===");
+      console.log("🔍 Equipment ID:", selectedSchedule.equipment_id);
+      console.log("🔍 Inspector:", inspectorName, "ID:", inspectorId);
+
+      // 1. FIRST: Find all clearance_inventory records for this equipment
+      console.log("🔍 Searching for clearance_inventory records...");
+      const { data: clearanceRecords, error: findError } = await supabase
+        .from("clearance_inventory")
+        .select("*")
+        .eq("inventory_id", selectedSchedule.equipment_id)
+        .eq("status", "Pending");
+
+      if (findError) {
+        console.error("❌ Error finding clearance records:", findError);
+      } else {
+        console.log(
+          `🔍 Found ${clearanceRecords?.length || 0} pending clearance records`
+        );
+      }
+
+      // Determine clearance status based on equipment status
+      let clearanceStatus;
+      switch (inspectionData.equipmentStatus) {
+        case "Good":
+        case "Needs Maintenance":
+        case "Under Repair":
+          clearanceStatus = "Cleared";
+          break;
+        case "Damaged":
+          clearanceStatus = "Damaged";
+          break;
+        case "Lost":
+          clearanceStatus = "Lost";
+          break;
+        default:
+          clearanceStatus =
+            inspectionData.status === "PASS" ? "Cleared" : "Damaged";
+      }
+
+      console.log("🔍 Determined clearance status:", clearanceStatus);
+
+      // 2. Update the inspection record
+      // The database trigger will automatically set schedule_status = 'DONE'
+      // when status is set to 'COMPLETED' or 'FAILED'
+      const inspectionStatus =
+        inspectionData.status === "PASS" ? "COMPLETED" : "FAILED";
+
+      console.log("📝 Updating inspection record to:", inspectionStatus);
+      console.log("📝 Inspection ID:", selectedSchedule.id);
+
       const { error: inspectionError } = await supabase
         .from("inspections")
         .update({
-          status: "COMPLETED",
-          findings: checkupData.findings,
+          status: inspectionStatus,
+          findings: inspectionData.findings,
+          recommendations:
+            inspectionData.status === "PASS"
+              ? "Equipment cleared"
+              : "Equipment requires attention",
+          // Don't set schedule_status here - the trigger will handle it
+          // Don't set inspection_date here - the trigger will handle it if needed
           updated_at: new Date().toISOString(),
         })
         .eq("id", selectedSchedule.id);
 
-      if (inspectionError) throw inspectionError;
+      if (inspectionError) {
+        console.error("❌ Error updating inspection:", inspectionError);
+        throw inspectionError;
+      }
 
-      toast.success("Checkup completed successfully");
-      setShowCheckupModal(false);
-      loadAllData();
-    } catch (error) {
-      console.error("Error submitting checkup:", error);
-      toast.error("Failed to submit checkup: " + error.message);
-    }
-  };
-    const checkAndUpdateClearanceStatus = async (
-      equipmentId,
-      clearanceStatus
-    ) => {
-      try {
-        // Get all clearance_inventory records for this equipment
-        const { data: clearanceRecords, error } = await supabase
+      console.log("✅ Inspection record updated");
+      console.log(
+        "✅ Database trigger will automatically set schedule_status = 'DONE'"
+      );
+
+      // 3. Check and update clearance status
+      await checkAndUpdateClearanceStatus(
+        selectedSchedule.equipment_id,
+        clearanceStatus
+      );
+
+      // 4. Update inventory status
+      const { error: inventoryError } = await supabase
+        .from("inventory")
+        .update({
+          last_checked: new Date().toISOString().split("T")[0],
+          status: inspectionData.equipmentStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedSchedule.equipment_id);
+
+      if (inventoryError) {
+        console.error("❌ Error updating inventory:", inventoryError);
+        throw inventoryError;
+      }
+
+      console.log("✅ Inventory record updated");
+
+      // 5. Update clearance_inventory records if they exist
+      if (clearanceRecords && clearanceRecords.length > 0) {
+        console.log("📝 Updating clearance_inventory records...");
+
+        const clearanceIds = clearanceRecords.map((record) => record.id);
+        const updatePayload = {
+          status: clearanceStatus,
+          inspection_id: selectedSchedule.id,
+          inspector_id: inspectorId,
+          inspector_name: inspectorName,
+          inspection_date: new Date().toISOString().split("T")[0],
+          updated_at: new Date().toISOString(),
+        };
+
+        // Try to update all clearance records
+        const { error: updateError } = await supabase
           .from("clearance_inventory")
-          .select("clearance_request_id, personnel_id, status")
-          .eq("inventory_id", equipmentId)
+          .update(updatePayload)
+          .eq("inventory_id", selectedSchedule.equipment_id)
           .eq("status", "Pending");
 
-        if (error) throw error;
+        if (updateError) {
+          console.error("❌ Error updating clearance records:", updateError);
+        } else {
+          console.log(
+            `✅ Updated ${clearanceRecords.length} clearance records`
+          );
+        }
 
-        if (clearanceRecords && clearanceRecords.length > 0) {
-          // Group by clearance request
-          const requestsMap = {};
-          clearanceRecords.forEach((record) => {
-            if (!requestsMap[record.clearance_request_id]) {
-              requestsMap[record.clearance_request_id] = {
-                requestId: record.clearance_request_id,
-                personnelId: record.personnel_id,
-                items: [],
-              };
-            }
-            requestsMap[record.clearance_request_id].items.push({
-              originalStatus: record.status,
-              newStatus: clearanceStatus,
-            });
-          });
+        // 6. Check each clearance request
+        const clearanceRequestIds = [
+          ...new Set(clearanceRecords.map((r) => r.clearance_request_id)),
+        ];
 
-          // Update each clearance request
-          for (const requestId in requestsMap) {
-            const request = requestsMap[requestId];
-
-            // Get all items for this clearance request
-            const { data: allItems, error: itemsError } = await supabase
-              .from("clearance_inventory")
-              .select("status")
-              .eq("clearance_request_id", requestId);
-
-            if (itemsError) continue;
-
-            // Count statuses
-            const total = allItems.length;
-            const cleared = allItems.filter(
-              (item) => item.status === "Cleared"
-            ).length;
-            const pending = allItems.filter(
-              (item) => item.status === "Pending"
-            ).length;
-            const damaged = allItems.filter(
-              (item) => item.status === "Damaged"
-            ).length;
-            const lost = allItems.filter(
-              (item) => item.status === "Lost"
-            ).length;
-
-            let newRequestStatus = "In Progress";
-
-            if (pending === 0 && damaged === 0 && lost === 0) {
-              // All items cleared
-              newRequestStatus = "Pending for Approval";
-            } else if (damaged > 0 || lost > 0) {
-              // Check if accountability is settled
-              const { data: accountabilityData } = await supabase
-                .from("personnel_equipment_accountability_table")
-                .select("accountability_status")
-                .eq("personnel_id", request.personnelId)
-                .eq("clearance_request_id", requestId)
-                .maybeSingle();
-
-              if (accountabilityData?.accountability_status === "SETTLED") {
-                newRequestStatus = "Pending for Approval";
-              } else {
-                newRequestStatus = "In Progress";
-              }
-            }
-
-            // Update clearance request status
-            const { error: updateError } = await supabase
-              .from("clearance_requests")
-              .update({
-                status: newRequestStatus,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", requestId);
-
-            if (!updateError) {
-              console.log(
-                `✅ Updated clearance request ${requestId} to ${newRequestStatus}`
-              );
-            }
+        for (const requestId of clearanceRequestIds) {
+          const requestRecord = clearanceRecords.find(
+            (r) => r.clearance_request_id === requestId
+          );
+          if (requestRecord) {
+            await checkAndCompletePersonnelClearance(
+              requestRecord.personnel_id,
+              [requestId]
+            );
           }
         }
-      } catch (error) {
-        console.error("Error updating clearance status:", error);
+      } else {
+        console.log("ℹ️ No pending clearance records found for this equipment");
       }
-    };
- const submitInspection = async () => {
-   if (!inspectionData.findings) {
-     toast.error("Please enter findings");
-     return;
-   }
 
-   try {
-     const inspectorName = selectedSchedule.inspector_name;
-     const inspectorId = selectedSchedule.inspector_id;
+      // 7. Create accountability record if needed
+      const isAccountabilityCase =
+        inspectionData.equipmentStatus === "Lost" ||
+        inspectionData.equipmentStatus === "Damaged";
 
-     if (!inspectorId) {
-       toast.error("No inspector assigned to this inspection");
-       return;
-     }
+      if (isAccountabilityCase && clearanceRecords) {
+        const requestIds =
+          clearanceRecords.map((r) => r.clearance_request_id) || [];
+        await createAccountabilityRecord(
+          selectedSchedule.id,
+          selectedSchedule.equipment_id,
+          selectedSchedule.personnel_id || null,
+          inspectionData.equipmentStatus,
+          inspectionData.findings,
+          requestIds
+        );
+      }
 
-     console.log("=== STARTING INSPECTION ===");
-     console.log("🔍 Equipment ID:", selectedSchedule.equipment_id);
-     console.log("🔍 Inspector:", inspectorName, "ID:", inspectorId);
+      // 8. Show success message
+      toast.success(
+        `Inspection ${inspectionStatus.toLowerCase()} and marked as DONE`
+      );
 
-     // 1. FIRST: Find all clearance_inventory records for this equipment
-     console.log("🔍 Searching for clearance_inventory records...");
-     const { data: clearanceRecords, error: findError } = await supabase
-       .from("clearance_inventory")
-       .select("*")
-       .eq("inventory_id", selectedSchedule.equipment_id)
-       .eq("status", "Pending");
+      setShowInspectModal(false);
 
-     if (findError) {
-       console.error("❌ Error finding clearance records:", findError);
-     } else {
-       console.log(
-         `🔍 Found ${clearanceRecords?.length || 0} pending clearance records`
-       );
-       if (clearanceRecords && clearanceRecords.length > 0) {
-         clearanceRecords.forEach((record) => {
-           console.log(
-             `   - Record ${record.id}: request ${record.clearance_request_id}, status ${record.status}`
-           );
-         });
-       }
-     }
-
-     // Determine clearance status based on equipment status
-     let clearanceStatus;
-     switch (inspectionData.equipmentStatus) {
-       case "Good":
-       case "Needs Maintenance":
-       case "Under Repair":
-         clearanceStatus = "Cleared";
-         break;
-       case "Damaged":
-         clearanceStatus = "Damaged";
-         break;
-       case "Lost":
-         clearanceStatus = "Lost";
-         break;
-       default:
-         clearanceStatus =
-           inspectionData.status === "PASS" ? "Cleared" : "Damaged";
-     }
-
-     console.log("🔍 Determined clearance status:", clearanceStatus);
-
-     // 2. Update the inspection record
-     const inspectionStatus =
-       inspectionData.status === "PASS" ? "COMPLETED" : "FAILED";
-
-     console.log("📝 Updating inspection record:", selectedSchedule.id);
-
-     const { error: inspectionError } = await supabase
-       .from("inspections")
-       .update({
-         status: inspectionStatus,
-         findings: inspectionData.findings,
-         recommendations:
-           inspectionData.status === "PASS"
-             ? "Equipment cleared"
-             : "Equipment requires attention",
-         updated_at: new Date().toISOString(),
-       })
-       .eq("id", selectedSchedule.id);
-
-     if (inspectionError) {
-       console.error("❌ Error updating inspection:", inspectionError);
-       throw inspectionError;
-     }
-
-     console.log("✅ Inspection record updated");
-     // After updating the inspection record in submitInspection:
-     console.log("✅ Inspection record updated");
-
-     // Check and update clearance status
-     await checkAndUpdateClearanceStatus(
-       selectedSchedule.equipment_id,
-       clearanceStatus
-     );
-
-     // Add this helper function
- 
-     // 3. Update inventory status
-     const { error: inventoryError } = await supabase
-       .from("inventory")
-       .update({
-         last_checked: new Date().toISOString().split("T")[0],
-         status: inspectionData.equipmentStatus,
-         updated_at: new Date().toISOString(),
-       })
-       .eq("id", selectedSchedule.equipment_id);
-
-     if (inventoryError) {
-       console.error("❌ Error updating inventory:", inventoryError);
-       throw inventoryError;
-     }
-
-     console.log("✅ Inventory record updated");
-
-     // 4. CRITICAL: Update ALL clearance_inventory records for this equipment
-     if (clearanceRecords && clearanceRecords.length > 0) {
-       console.log("📝 Updating clearance_inventory records...");
-
-       // Create an array of all clearance_inventory IDs
-       const clearanceIds = clearanceRecords.map((record) => record.id);
-       console.log("📝 Clearance inventory IDs to update:", clearanceIds);
-
-       // Build update payload - SIMPLIFIED to ensure it works
-       const updatePayload = {
-         status: clearanceStatus,
-         inspection_id: selectedSchedule.id,
-         inspector_id: inspectorId,
-         inspector_name: inspectorName,
-         inspection_date: new Date().toISOString().split("T")[0],
-         updated_at: new Date().toISOString(),
-       };
-
-       console.log("📝 Update payload:", updatePayload);
-
-       // METHOD 1: Direct update by IDs
-       console.log("🔄 METHOD 1: Updating by clearance_inventory IDs...");
-       const { data: updateResult1, error: updateError1 } = await supabase
-         .from("clearance_inventory")
-         .update(updatePayload)
-         .in("id", clearanceIds);
-
-       if (updateError1) {
-         console.error("❌ METHOD 1 failed:", updateError1);
-
-         // METHOD 2: Update by equipment ID and status
-         console.log("🔄 METHOD 2: Updating by equipment ID and status...");
-         const { error: updateError2 } = await supabase
-           .from("clearance_inventory")
-           .update(updatePayload)
-           .eq("inventory_id", selectedSchedule.equipment_id)
-           .eq("status", "Pending");
-
-         if (updateError2) {
-           console.error("❌ METHOD 2 failed:", updateError2);
-
-           // METHOD 3: Update one by one
-           console.log("🔄 METHOD 3: Updating one by one...");
-           let successCount = 0;
-           for (const record of clearanceRecords) {
-             try {
-               const { error: singleError } = await supabase
-                 .from("clearance_inventory")
-                 .update({
-                   status: clearanceStatus,
-                   inspection_id: selectedSchedule.id,
-                   inspector_id: inspectorId,
-                   inspector_name: inspectorName,
-                   updated_at: new Date().toISOString(),
-                 })
-                 .eq("id", record.id);
-
-               if (!singleError) {
-                 successCount++;
-                 console.log(`   ✅ Updated record ${record.id}`);
-               } else {
-                 console.error(
-                   `   ❌ Failed to update record ${record.id}:`,
-                   singleError
-                 );
-               }
-             } catch (err) {
-               console.error(`   ❌ Error updating record ${record.id}:`, err);
-             }
-           }
-           console.log(
-             `✅ Updated ${successCount} out of ${clearanceRecords.length} records`
-           );
-         } else {
-           console.log("✅ METHOD 2 succeeded");
-         }
-       } else {
-         console.log(
-           `✅ METHOD 1 succeeded - updated ${clearanceRecords.length} records`
-         );
-       }
-
-       // 5. Verify the update
-       console.log("🔍 Verifying update...");
-       const { data: verifyData, error: verifyError } = await supabase
-         .from("clearance_inventory")
-         .select("id, status, inspection_id, inspector_name")
-         .in("id", clearanceIds);
-
-       if (!verifyError && verifyData) {
-         console.log("🔍 Verification results:");
-         verifyData.forEach((record) => {
-           console.log(
-             `   Record ${record.id}: status=${record.status}, inspection_id=${record.inspection_id}, inspector=${record.inspector_name}`
-           );
-         });
-
-         const updatedCount = verifyData.filter(
-           (r) => r.status === clearanceStatus
-         ).length;
-         console.log(
-           `   ${updatedCount} out of ${verifyData.length} records updated to ${clearanceStatus}`
-         );
-       } else {
-         console.error("❌ Verification error:", verifyError);
-       }
-
-       // 6. Check each clearance request separately
-       const clearanceRequestIds = [
-         ...new Set(clearanceRecords.map((r) => r.clearance_request_id)),
-       ];
-
-       console.log("🔍 Checking clearance requests:", clearanceRequestIds);
-
-       for (const requestId of clearanceRequestIds) {
-         // Get personnel ID for this specific request
-         const requestRecord = clearanceRecords.find(
-           (r) => r.clearance_request_id === requestId
-         );
-         if (requestRecord) {
-           await checkAndCompletePersonnelClearance(
-             requestRecord.personnel_id,
-             [requestId]
-           );
-         }
-       }
-     } else {
-       console.log("ℹ️ No pending clearance records found for this equipment");
-     }
-
-     // 7. Create accountability record if needed
-     const isAccountabilityCase =
-       inspectionData.equipmentStatus === "Lost" ||
-       inspectionData.equipmentStatus === "Damaged";
-
-     if (isAccountabilityCase && clearanceRecords) {
-       const requestIds =
-         clearanceRecords.map((r) => r.clearance_request_id) || [];
-       await createAccountabilityRecord(
-         selectedSchedule.id,
-         selectedSchedule.equipment_id,
-         selectedSchedule.personnel_id || null,
-         inspectionData.equipmentStatus,
-         inspectionData.findings,
-         requestIds
-       );
-     }
-
-     // 8. Show success message
-     toast.success("Inspection completed successfully");
-
-     setShowInspectModal(false);
-
-     // Reload data
-     loadAllData();
-     loadPendingClearances();
-   } catch (error) {
-     console.error("❌ Error submitting inspection:", error);
-     toast.error("Failed to submit inspection: " + error.message);
-   }
- };
+      // 9. Reload data to see the updated schedule_status
+      loadAllData();
+      loadPendingClearances();
+    } catch (error) {
+      console.error("❌ Error submitting inspection:", error);
+      toast.error("Failed to submit inspection: " + error.message);
+    } finally {
+      setIsInspecting(false); // Stop loading
+    }
+  };
+  
   // Add this test function temporarily
   const testClearanceUpdate = async () => {
     try {
@@ -1674,143 +1691,154 @@ const handleCreateSchedule = async () => {
     }
   };
 
-const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
-  try {
-    console.log(`🔍 Checking equipment status for personnel ${personnelId}`);
-    console.log(`🔍 Checking clearance request IDs:`, requestIds);
+  const checkAndCompletePersonnelClearance = async (
+    personnelId,
+    requestIds
+  ) => {
+    try {
+      console.log(`🔍 Checking equipment status for personnel ${personnelId}`);
+      console.log(`🔍 Checking clearance request IDs:`, requestIds);
 
-    // Check EACH clearance request separately
-    for (const requestId of requestIds) {
-      console.log(`🔍 Checking clearance request ${requestId}...`);
+      // Check EACH clearance request separately
+      for (const requestId of requestIds) {
+        console.log(`🔍 Checking clearance request ${requestId}...`);
 
-      // Get ALL equipment statuses for this clearance request
-      const { data: allEquipment, error } = await supabase
-        .from("clearance_inventory")
-        .select("id, status, clearance_request_id")
-        .eq("personnel_id", personnelId)
-        .eq("clearance_request_id", requestId);
+        // Get ALL equipment statuses for this clearance request
+        const { data: allEquipment, error } = await supabase
+          .from("clearance_inventory")
+          .select("id, status, clearance_request_id")
+          .eq("personnel_id", personnelId)
+          .eq("clearance_request_id", requestId);
 
-      if (error) {
-        console.error(`Error checking clearance request ${requestId}:`, error);
-        continue;
-      }
+        if (error) {
+          console.error(
+            `Error checking clearance request ${requestId}:`,
+            error
+          );
+          continue;
+        }
 
-      if (!allEquipment || allEquipment.length === 0) {
-        console.log(`ℹ️ No equipment found for clearance request ${requestId}`);
-        continue;
-      }
-
-      // Count statuses
-      const totalEquipment = allEquipment.length;
-      const pendingCount = allEquipment.filter(
-        (e) => e.status === "Pending"
-      ).length;
-      const clearedCount = allEquipment.filter(
-        (e) => e.status === "Cleared"
-      ).length;
-      const damagedCount = allEquipment.filter(
-        (e) => e.status === "Damaged"
-      ).length;
-      const lostCount = allEquipment.filter((e) => e.status === "Lost").length;
-
-      console.log(`📊 Clearance request ${requestId} status summary:`);
-      console.log(`   Total equipment: ${totalEquipment}`);
-      console.log(`   Pending: ${pendingCount}`);
-      console.log(`   Cleared: ${clearedCount}`);
-      console.log(`   Damaged: ${damagedCount}`);
-      console.log(`   Lost: ${lostCount}`);
-
-      // Get current clearance request status
-      const { data: clearanceRequest, error: requestError } = await supabase
-        .from("clearance_requests")
-        .select("type, status")
-        .eq("id", requestId)
-        .single();
-
-      if (requestError) {
-        console.error(
-          `Error getting clearance request ${requestId}:`,
-          requestError
-        );
-        continue;
-      }
-
-      // ====== IMPORTANT CHANGE ======
-      // DO NOT automatically mark as "Completed"
-      // Only update status to "In Progress" if there are no pending items
-      // But keep it as "In Progress" - NOT "Completed"
-
-      if (pendingCount === 0) {
-        console.log(
-          `✅ All equipment inspected for clearance request ${requestId}`
-        );
-
-        // Check current status
-        if (clearanceRequest.status === "Pending") {
-          // If it was Pending and now all equipment is inspected, mark as In Progress
-          const { error: updateError } = await supabase
-            .from("clearance_requests")
-            .update({
-              status: "In Progress",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", requestId);
-
-          if (updateError) {
-            console.error(
-              `Error updating clearance request ${requestId} to In Progress:`,
-              updateError
-            );
-          } else {
-            console.log(
-              `🔄 Updated clearance request ${requestId} to In Progress`
-            );
-          }
-        } else if (clearanceRequest.status === "In Progress") {
+        if (!allEquipment || allEquipment.length === 0) {
           console.log(
-            `ℹ️ Clearance request ${requestId} already In Progress - waiting for manual completion`
+            `ℹ️ No equipment found for clearance request ${requestId}`
+          );
+          continue;
+        }
+
+        // Count statuses
+        const totalEquipment = allEquipment.length;
+        const pendingCount = allEquipment.filter(
+          (e) => e.status === "Pending"
+        ).length;
+        const clearedCount = allEquipment.filter(
+          (e) => e.status === "Cleared"
+        ).length;
+        const damagedCount = allEquipment.filter(
+          (e) => e.status === "Damaged"
+        ).length;
+        const lostCount = allEquipment.filter(
+          (e) => e.status === "Lost"
+        ).length;
+
+        console.log(`📊 Clearance request ${requestId} status summary:`);
+        console.log(`   Total equipment: ${totalEquipment}`);
+        console.log(`   Pending: ${pendingCount}`);
+        console.log(`   Cleared: ${clearedCount}`);
+        console.log(`   Damaged: ${damagedCount}`);
+        console.log(`   Lost: ${lostCount}`);
+
+        // Get current clearance request status
+        const { data: clearanceRequest, error: requestError } = await supabase
+          .from("clearance_requests")
+          .select("type, status")
+          .eq("id", requestId)
+          .single();
+
+        if (requestError) {
+          console.error(
+            `Error getting clearance request ${requestId}:`,
+            requestError
+          );
+          continue;
+        }
+
+        // ====== IMPORTANT CHANGE ======
+        // DO NOT automatically mark as "Completed"
+        // Only update status to "In Progress" if there are no pending items
+        // But keep it as "In Progress" - NOT "Completed"
+
+        if (pendingCount === 0) {
+          console.log(
+            `✅ All equipment inspected for clearance request ${requestId}`
           );
 
-          // ====== NEW: Check if there are any damaged/lost equipment ======
-          if (damagedCount > 0 || lostCount > 0) {
+          // Check current status
+          if (clearanceRequest.status === "Pending") {
+            // If it was Pending and now all equipment is inspected, mark as In Progress
+            const { error: updateError } = await supabase
+              .from("clearance_requests")
+              .update({
+                status: "In Progress",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", requestId);
+
+            if (updateError) {
+              console.error(
+                `Error updating clearance request ${requestId} to In Progress:`,
+                updateError
+              );
+            } else {
+              console.log(
+                `🔄 Updated clearance request ${requestId} to In Progress`
+              );
+            }
+          } else if (clearanceRequest.status === "In Progress") {
             console.log(
-              `⚠️ Clearance request ${requestId} has damaged/lost equipment - may require accountability`
+              `ℹ️ Clearance request ${requestId} already In Progress - waiting for manual completion`
             );
+
+            // ====== NEW: Check if there are any damaged/lost equipment ======
+            if (damagedCount > 0 || lostCount > 0) {
+              console.log(
+                `⚠️ Clearance request ${requestId} has damaged/lost equipment - may require accountability`
+              );
+            }
           }
-        }
-      } else {
-        console.log(
-          `⏳ Still ${pendingCount} pending equipment items for clearance request ${requestId}`
-        );
+        } else {
+          console.log(
+            `⏳ Still ${pendingCount} pending equipment items for clearance request ${requestId}`
+          );
 
-        // If there are still pending items and status is Pending, update to In Progress
-        if (clearanceRequest.status === "Pending" && clearedCount > 0) {
-          // At least one equipment has been inspected
-          const { error: updateError } = await supabase
-            .from("clearance_requests")
-            .update({
-              status: "In Progress",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", requestId);
+          // If there are still pending items and status is Pending, update to In Progress
+          if (clearanceRequest.status === "Pending" && clearedCount > 0) {
+            // At least one equipment has been inspected
+            const { error: updateError } = await supabase
+              .from("clearance_requests")
+              .update({
+                status: "In Progress",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", requestId);
 
-          if (updateError) {
-            console.error(
-              `Error updating clearance request ${requestId} to In Progress:`,
-              updateError
-            );
-          } else {
-            console.log(
-              `🔄 Updated clearance request ${requestId} to In Progress (some equipment inspected)`
-            );
+            if (updateError) {
+              console.error(
+                `Error updating clearance request ${requestId} to In Progress:`,
+                updateError
+              );
+            } else {
+              console.log(
+                `🔄 Updated clearance request ${requestId} to In Progress (some equipment inspected)`
+              );
+            }
           }
         }
       }
+    } catch (error) {
+      console.error("Error in checkAndCompletePersonnelClearance:", error);
     }
-  } catch (error) {
-    console.error("Error in checkAndCompletePersonnelClearance:", error);
-  }
-};
+  };
+  
   // Function to update schedule status based on dates
   const updateScheduleStatus = async (inspectionId, scheduledDate) => {
     const todayPST = getTodayInPST();
@@ -2090,6 +2118,7 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
     recentStart,
     recentStart + rowsPerPage
   );
+  
   // Add this helper function near your other functions
   const createAccountabilityRecord = async (
     inspectionId,
@@ -2110,7 +2139,7 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
         price,
         item_name,
         assigned_to,
-        personnel:assigned_personnel_id(first_name, last_name, badge_number)
+        personnel:assigned_personnel_id(first_name, middle_name, last_name, badge_number)
       `
         )
         .eq("id", equipmentId)
@@ -2129,14 +2158,12 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
       // 2. Get personnel name
       const { data: personnelData, error: personnelError } = await supabase
         .from("personnel")
-        .select("first_name, last_name")
+        .select("first_name, middle_name, last_name")
         .eq("id", targetPersonnelId)
         .single();
 
       const personnelName = personnelData
-        ? `${personnelData.first_name || ""} ${
-            personnelData.last_name || ""
-          }`.trim()
+        ? formatPersonnelName(personnelData)
         : equipment.assigned_to || "Unknown";
 
       // 3. Calculate amount due
@@ -2214,7 +2241,6 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
   };
 
   // Helper function to update the summary table
-  // Helper function to update the summary table
   const updatePersonnelAccountabilitySummary = async (
     personnelId,
     clearanceRequestId = null
@@ -2269,13 +2295,13 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
       // Get personnel info
       const { data: personnel, error: personnelError } = await supabase
         .from("personnel")
-        .select("first_name, last_name, rank, badge_number")
+        .select("first_name, middle_name, last_name, rank, badge_number")
         .eq("id", personnelId)
         .single();
 
       if (personnelError) throw personnelError;
 
-      const personnel_name = `${personnel.first_name} ${personnel.last_name}`;
+      const personnel_name = formatPersonnelName(personnel);
 
       // Update or insert into summary table
       const summaryData = {
@@ -2361,6 +2387,17 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
       throw error;
     }
   };
+  
+  // UPDATED: Function to render inspector dropdown options
+  const renderInspectorOptions = () => {
+    return personnelList.map((person) => (
+      <option key={person.id} value={person.id}>
+        {person.display_name}
+        {person.badge_number ? ` (${person.badge_number})` : ""}
+      </option>
+    ));
+  };
+
   return (
     <div className="AppInspectorInventoryControl">
       <Title>Inspector Equipment Inspection | BFP Villanueva</Title>
@@ -2390,6 +2427,7 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
         <section className={styles.IEISection}>
           <div className={styles.IEISectionHeader}>
             <h2>Pending Clearance Inspections</h2>
+           
           </div>
 
           <div className={styles.clearanceCarousel}>
@@ -2521,454 +2559,343 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
             </div>
 
             {/* UPDATED: Show/hide form instead of modal */}
-            <div
-              ref={scheduleFormRef}
-              className={`${styles.scheduleForm} ${
-                showScheduleForm ? styles.show : ""
-              }`}
-            >
-              <div className={styles.scheduleFormContent}>
-                <div className={styles.scheduleFormRow}>
-                  {/* UPDATED Schedule Date Field with Flatpickr */}
-                  <div className={styles.scheduleFormGroup}>
-                    <div className={styles.floatingGroup}>
-                      <Flatpickr
-                        value={formData.scheduled_date}
-                        onChange={([date]) => {
-                          if (date) {
-                            // Option A: Use local date string (safer)
-                            const year = date.getFullYear();
-                            const month = String(date.getMonth() + 1).padStart(
-                              2,
-                              "0"
-                            );
-                            const day = String(date.getDate()).padStart(2, "0");
-                            const dateStr = `${year}-${month}-${day}`;
+            {/* UPDATED: Schedule Form - Mobile Responsive */}
+<div
+  ref={scheduleFormRef}
+  className={`${styles.scheduleForm} ${
+    showScheduleForm ? styles.show : ""
+  }`}
+>
+  <div className={styles.scheduleFormContent}>
+    {/* Form Row - Responsive Grid */}
+    <div className={styles.scheduleFormGrid}>
+      {/* Date Field */}
+      <div className={styles.scheduleFormGroup}>
+        <div className={styles.floatingGroup}>
+          <Flatpickr
+            value={formData.scheduled_date}
+            onChange={([date]) => {
+              if (date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const day = String(date.getDate()).padStart(2, "0");
+                const dateStr = `${year}-${month}-${day}`;
+                setFormData({
+                  ...formData,
+                  scheduled_date: dateStr,
+                });
+              } else {
+                setFormData({
+                  ...formData,
+                  scheduled_date: "",
+                });
+              }
+            }}
+            options={{
+              dateFormat: "Y-m-d",
+              minDate: "today",
+              disableMobile: true,
+            }}
+            className={styles.floatingInput}
+            placeholder=" "
+          />
+          <label
+            htmlFor="scheduledDate"
+            className={styles.floatingLabel}
+          >
+            Scheduled Date
+          </label>
+        </div>
+      </div>
 
-                            // Option B: Use Date.toLocaleDateString
-                            // const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      {/* Inspector Field */}
+      <div className={styles.scheduleFormGroup}>
+        <div className={styles.floatingGroup}>
+          <select
+            id="inspector"
+            className={styles.floatingSelect}
+            value={formData.inspector_id}
+            onChange={(e) => {
+              setFormData({
+                ...formData,
+                inspector_id: e.target.value,
+              });
+            }}
+            required
+          >
+            <option value=""></option>
+            {renderInspectorOptions()}
+          </select>
+          <label
+            htmlFor="inspector"
+            className={styles.floatingLabel}
+          >
+            Inspector *
+          </label>
+        </div>
+      </div>
 
-                            setFormData({
-                              ...formData,
-                              scheduled_date: dateStr,
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              scheduled_date: "",
-                            });
-                          }
-                        }}
-                        options={{
-                          dateFormat: "Y-m-d",
-                          minDate: "today",
-                          // Add timezone handling
-                          time_24hr: false,
-                          disableMobile: true, // Disable mobile native picker for consistency
-                        }}
-                        className={styles.floatingInput}
-                        placeholder=" "
-                      />
-                      <label
-                        htmlFor="scheduledDate"
-                        className={styles.floatingLabel}
-                      >
-                        Scheduled Date
-                      </label>
-                    </div>
-                  </div>
+      {/* Personnel Filter Field */}
+      <div className={styles.scheduleFormGroup}>
+        <div className={styles.floatingGroup}>
+          <select
+            id="selectedPersonnel"
+            className={styles.floatingSelect}
+            value={formData.selected_personnel}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                selected_personnel: e.target.value,
+              })
+            }
+          >
+            <option value="">All Personnel</option>
+            <option value="Unassigned">Unassigned</option>
+            {getAssignedPersonnel().map((personName, index) => (
+              <option
+                key={index}
+                value={personName}
+                title={personName}
+              >
+                {personName.length > 30
+                  ? `${personName.substring(0, 30)}...`
+                  : personName}
+              </option>
+            ))}
+          </select>
+          <label
+            htmlFor="selectedPersonnel"
+            className={styles.floatingLabel}
+          >
+            Filter by Personnel
+          </label>
+        </div>
+      </div>
+    </div>
 
-                  <div className={styles.scheduleFormGroup}>
-                    <div className={styles.floatingGroup}>
-                      <select
-                        id="inspector"
-                        className={styles.floatingSelect}
-                        value={formData.inspector_id}
-                        onChange={(e) => {
-                          setFormData({
-                            ...formData,
-                            inspector_id: e.target.value,
-                          });
-                        }}
-                        required
-                      >
-                        <option value=""></option>
-                        {personnelList.map((person) => (
-                          <option key={person.id} value={person.id}>
-                            {person.first_name} {person.last_name}
-                            {person.badge_number
-                              ? ` (${person.badge_number})`
-                              : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <label
-                        htmlFor="inspector"
-                        className={styles.floatingLabel}
-                      >
-                        Inspector *
-                      </label>
-                    </div>
-                  </div>
+    {/* Equipment Selection Section */}
+    <div className={styles.equipmentSelectionSection}>
+      <h4>
+        Select Equipment to Inspect
+        {formData.selected_personnel && (
+          <span className={styles.filterNote}>
+            (Filtered by: {formData.selected_personnel})
+          </span>
+        )}
+      </h4>
+      
+      {/* UPDATED: Equipment Filters - Responsive Grid */}
+      <div className={styles.equipmentFiltersGrid}>
+        <div className={styles.equipmentFilterGroup}>
+          <input
+            type="text"
+            placeholder="🔍 Search equipment..."
+            value={equipmentSearch}
+            onChange={(e) => setEquipmentSearch(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
 
-                  {/* In your schedule form - Update the personnel filter */}
-                  <div className={styles.scheduleFormGroup}>
-                    <div className={styles.floatingGroup}>
-                      <select
-                        id="selectedPersonnel"
-                        className={styles.floatingSelect}
-                        value={formData.selected_personnel}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            selected_personnel: e.target.value,
-                          })
-                        }
-                        style={{
-                          maxWidth: "100%",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        <option value="">All Personnel</option>
-                        <option value="Unassigned">Unassigned</option>
-                        {getAssignedPersonnel().map((personName, index) => (
-                          <option
-                            key={index}
-                            value={personName}
-                            title={personName} /* Add tooltip for full name */
-                          >
-                            {personName.length > 30
-                              ? `${personName.substring(0, 30)}...`
-                              : personName}
-                          </option>
-                        ))}
-                      </select>
-                      <label
-                        htmlFor="selectedPersonnel"
-                        className={styles.floatingLabel}
-                      >
-                        Filter by Personnel
-                      </label>
-                    </div>
-                  </div>
-                </div>
+        <div className={styles.equipmentFilterGroup}>
+          <select
+            value={equipmentFilterCategory}
+            onChange={(e) =>
+              setEquipmentFilterCategory(e.target.value)
+            }
+            className={styles.filterSelect}
+          >
+            <option value="">All Categories</option>
+            <option value="Firefighting Equipment">
+              Firefighting Equipment
+            </option>
+            <option value="Protective Gear">Protective Gear</option>
+            <option value="Vehicle Equipment">
+              Vehicle Equipment
+            </option>
+            <option value="Communication Equipment">
+              Communication Equipment
+            </option>
+            <option value="Medical Equipment">
+              Medical Equipment
+            </option>
+            <option value="Tools">Tools</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
 
-                <div className={styles.equipmentSelectionSection}>
-                  <h4>
-                    Select Equipment to Inspect
-                    {formData.selected_personnel && (
-                      <span className={styles.filterNote}>
-                        (Filtered by: {formData.selected_personnel})
-                      </span>
-                    )}
-                  </h4>
-                  <div className={styles.equipmentFilters}>
+        <div className={styles.equipmentFilterGroup}>
+          <select
+            value={equipmentFilterStatus}
+            onChange={(e) => setEquipmentFilterStatus(e.target.value)}
+            className={styles.filterSelect}
+          >
+            <option value="">All Status</option>
+            <option value="Good">Good</option>
+            <option value="Needs Maintenance">
+              Needs Maintenance
+            </option>
+            <option value="Damaged">Damaged</option>
+            <option value="Under Repair">Under Repair</option>
+            <option value="Retired">Retired</option>
+            <option value="Lost">Lost</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Selection Summary */}
+      <div className={styles.selectionSummary}>
+        <p>
+          Selected: {selectedEquipmentForSchedule.length}
+          equipment items
+          {selectableEquipmentCount !==
+            filteredEquipment.length && (
+            <span className={styles.selectableNote}>
+              ({selectableEquipmentCount} of
+              {filteredEquipment.length} available for scheduling)
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* Equipment Table Container */}
+      <div className={styles.equipmentTableContainer}>
+        <table className={styles.equipmentTable}>
+          <thead>
+            <tr>
+              <th className={styles.selectColumn}>
+                <input
+                  type="checkbox"
+                  checked={
+                    selectableEquipment.length > 0 &&
+                    selectedEquipmentForSchedule.length ===
+                      selectableEquipment.length
+                  }
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedEquipmentForSchedule(
+                        selectableEquipment.map((item) => item.id)
+                      );
+                    } else {
+                      setSelectedEquipmentForSchedule([]);
+                    }
+                  }}
+                  disabled={selectableEquipment.length === 0}
+                />
+              </th>
+              <th>Item Code</th>
+              <th>Equipment Name</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th>Clearance Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredEquipment.map((item) => {
+              const hasClearance =
+                equipmentClearanceMap[item.id]?.hasClearance || false;
+              const clearanceType =
+                equipmentClearanceMap[item.id]?.type || "";
+              const hasPendingInspection =
+                pendingInspectionsMap[item.id] || false;
+              const isSelectable = !hasPendingInspection;
+
+              return (
+                <tr
+                  key={item.id}
+                  className={
+                    !isSelectable ? styles.rowDisabled : ""
+                  }
+                >
+                  <td className={styles.selectColumn}>
                     <input
-                      type="text"
-                      placeholder="🔍 Search equipment..."
-                      value={equipmentSearch}
-                      onChange={(e) => setEquipmentSearch(e.target.value)}
-                      className={styles.searchInput}
+                      type="checkbox"
+                      checked={selectedEquipmentForSchedule.includes(
+                        item.id
+                      )}
+                      onChange={() => {
+                        if (isSelectable) {
+                          toggleEquipmentSelection(item.id);
+                        }
+                      }}
+                      disabled={!isSelectable}
                     />
-
-                    <select
-                      value={equipmentFilterCategory}
-                      onChange={(e) =>
-                        setEquipmentFilterCategory(e.target.value)
-                      }
-                      className={styles.filterSelect}
+                  </td>
+                  <td>{item.item_code}</td>
+                  <td>{item.item_name}</td>
+                  <td>{item.category}</td>
+                  <td>
+                    <span
+                      className={`${styles.statusBadge} ${
+                        styles[item.status?.replace(" ", "")]
+                      }`}
                     >
-                      <option value="">All Categories</option>
-                      <option value="Firefighting Equipment">
-                        Firefighting Equipment
-                      </option>
-                      <option value="Protective Gear">Protective Gear</option>
-                      <option value="Vehicle Equipment">
-                        Vehicle Equipment
-                      </option>
-                      <option value="Communication Equipment">
-                        Communication Equipment
-                      </option>
-                      <option value="Medical Equipment">
-                        Medical Equipment
-                      </option>
-                      <option value="Tools">Tools</option>
-                      <option value="Other">Other</option>
-                    </select>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td>{item.assigned_to}</td>
+                  <td>
+                    {hasClearance ? (
+                      <div className={styles.clearanceIndicator}>
+                        <span className={styles.clearanceBadge}>
+                          ⚠️ {clearanceType}
+                        </span>
+                      </div>
+                    ) : hasPendingInspection ? (
+                      <div className={styles.pendingInspection}>
+                        <span className={styles.pendingBadge}>
+                          ⏳ Pending Inspection
+                        </span>
+                      </div>
+                    ) : (
+                      <span className={styles.noClearance}>—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-                    <select
-                      value={equipmentFilterStatus}
-                      onChange={(e) => setEquipmentFilterStatus(e.target.value)}
-                      className={styles.filterSelect}
-                    >
-                      <option value="">All Status</option>
-                      <option value="Good">Good</option>
-                      <option value="Needs Maintenance">
-                        Needs Maintenance
-                      </option>
-                      <option value="Damaged">Damaged</option>
-                      <option value="Under Repair">Under Repair</option>
-                      <option value="Retired">Retired</option>
-                      <option value="Lost">Lost</option>
-                    </select>
-                  </div>
+      {/* Bottom Summary */}
+      <div className={styles.selectionSummary}>
+        <p>
+          Selected: {selectedEquipmentForSchedule.length} equipment
+          items
+        </p>
+      </div>
+    </div>
 
-                  <button
-                    onClick={async () => {
-                      const testEquipmentId =
-                        "00cf0cd6-7e91-4fd5-9753-4cd6471d73ab";
-
-                      const { data, error } = await supabase
-                        .from("clearance_inventory")
-                        .update({
-                          status: "Cleared",
-                          inspector_name: "TEST",
-                          inspector_id: "f979e5dd-4227-4bb5-9f84-c444827a4196",
-                          updated_at: new Date().toISOString(),
-                        })
-                        .eq("inventory_id", testEquipmentId)
-                        .eq("status", "Pending")
-                        .select();
-
-                      console.log("Manual test result:", { data, error });
-                    }}
-                    style={{
-                      margin: "10px",
-                      padding: "10px",
-                      background: "#ff9900",
-                    }}
-                  >
-                    Test Clearance Update
-                  </button>
-                  <div className={styles.equipmentTableContainer}>
-                    <div className={styles.selectionSummary}>
-                      <p>
-                        Selected: {selectedEquipmentForSchedule.length}
-                        equipment items
-                        {selectableEquipmentCount !==
-                          filteredEquipment.length && (
-                          <span className={styles.selectableNote}>
-                            ({selectableEquipmentCount} of
-                            {filteredEquipment.length} available for scheduling)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <table className={styles.equipmentTable}>
-                      <thead>
-                        <tr>
-                          <th style={{ width: "50px" }}>
-                            <input
-                              type="checkbox"
-                              checked={
-                                selectedEquipmentForSchedule.length ===
-                                  selectableEquipmentCount &&
-                                selectableEquipmentCount > 0
-                              }
-                              onChange={() => {
-                                if (
-                                  selectedEquipmentForSchedule.length ===
-                                  selectableEquipmentCount
-                                ) {
-                                  // Deselect all
-                                  setSelectedEquipmentForSchedule([]);
-                                } else {
-                                  // Select only equipment WITHOUT pending inspections
-                                  const selectableIds = filteredEquipment
-                                    .filter(
-                                      (item) => !pendingInspectionsMap[item.id]
-                                    )
-                                    .map((item) => item.id);
-                                  setSelectedEquipmentForSchedule(
-                                    selectableIds
-                                  );
-                                }
-                              }}
-                              disabled={selectableEquipmentCount === 0}
-                            />
-                          </th>
-                          <th>Equipment Name</th>
-                          <th>Barcode/Serial Number</th>
-                          <th>Category</th>
-                          <th>Status</th>
-                          <th>Assigned To</th>
-                          <th>Assigned Date</th>
-                          <th>Last Assigned</th>
-                          <th>Unassigned Date</th>
-                          <th>Clearance Request</th>
-                          <th>Price</th>
-                          <th>Purchase Date</th>
-                          <th>Last Checked</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredEquipment.length > 0 ? (
-                          filteredEquipment.map((item) => {
-                            const clearanceInfo =
-                              equipmentClearanceMap[item.id];
-                            const hasClearance =
-                              clearanceInfo?.hasClearance || false;
-                            const clearanceType = clearanceInfo?.type || "";
-                            const hasPendingInspection =
-                              pendingInspectionsMap &&
-                              pendingInspectionsMap[item.id];
-
-                            return (
-                              <tr
-                                key={item.id}
-                                style={
-                                  hasClearance
-                                    ? { backgroundColor: "#fff9e6" }
-                                    : hasPendingInspection
-                                    ? {
-                                        backgroundColor: "#ffe6e6",
-                                        opacity: 0.6,
-                                      }
-                                    : {}
-                                }
-                              >
-                                <td>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedEquipmentForSchedule.includes(
-                                      item.id
-                                    )}
-                                    onChange={() =>
-                                      toggleEquipmentSelection(item.id)
-                                    }
-                                    disabled={hasPendingInspection}
-                                  />
-                                </td>
-                                <td>{item.item_name}</td>
-                                <td>{item.item_code}</td>
-                                <td>{item.category}</td>
-                                <td>
-                                  <span
-                                    className={`${styles.statusBadge} ${
-                                      styles[item.status?.replace(" ", "")]
-                                    }`}
-                                  >
-                                    {item.status}
-                                  </span>
-                                </td>
-                                <td
-                                  className={styles.personnelCell}
-                                  title={item.assigned_to}
-                                >
-                                  {item.assigned_to &&
-                                  item.assigned_to.length > 20
-                                    ? `${item.assigned_to.substring(0, 20)}...`
-                                    : item.assigned_to}
-                                </td>
-                                <td>
-                                  {item.assigned_date
-                                    ? formatDate(item.assigned_date)
-                                    : "N/A"}
-                                </td>
-                                <td>{item.last_assigned || "N/A"}</td>
-                                <td>
-                                  {item.unassigned_date
-                                    ? formatDate(item.unassigned_date)
-                                    : "N/A"}
-                                </td>
-                                <td>
-                                  {hasClearance ? (
-                                    <div className={styles.clearanceIndicator}>
-                                      <span className={styles.clearanceBadge}>
-                                        ⚠️ {clearanceInfo.type}
-                                        {clearanceInfo.originalTypes?.length >
-                                          1 && (
-                                          <span
-                                            className={styles.multipleBadge}
-                                          >
-                                            (
-                                            {clearanceInfo.originalTypes.length}
-                                            )
-                                          </span>
-                                        )}
-                                      </span>
-                                      {clearanceInfo.originalTypes?.length >
-                                        1 && (
-                                        <div
-                                          className={
-                                            styles.multipleClearanceTooltip
-                                          }
-                                        >
-                                          <p>Multiple Clearance Types:</p>
-                                          <ul>
-                                            {clearanceInfo.originalTypes.map(
-                                              (type, idx) => (
-                                                <li key={idx}>{type}</li>
-                                              )
-                                            )}
-                                          </ul>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : hasPendingInspection ? (
-                                    <div
-                                      className={
-                                        styles.pendingInspectionIndicator
-                                      }
-                                    >
-                                      <span className={styles.pendingBadge}>
-                                        ⚠️ Pending Inspection
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <span className={styles.noClearance}>
-                                      —
-                                    </span>
-                                  )}
-                                </td>
-                                <td>
-                                  {item.price ? formatPHP(item.price) : "₱0.00"}
-                                </td>
-                                <td>{formatDate(item.purchase_date)}</td>
-                                <td>{formatDate(item.last_checked)}</td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan="100" className={styles.noEquipment}>
-                              {formData.selected_personnel
-                                ? `No equipment found assigned to ${formData.selected_personnel}`
-                                : "No equipment found matching your criteria"}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className={styles.selectionSummary}>
-                    <p>
-                      Selected: {selectedEquipmentForSchedule.length} equipment
-                      items
-                    </p>
-                  </div>
-                </div>
-
-                <div className={styles.scheduleFormActions}>
-                  <button
-                    type="button"
-                    className={styles.scheduleCancel}
-                    onClick={resetScheduleForm}
-                  >
-                    Clear Form
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.scheduleSubmit}
-                    onClick={handleCreateSchedule}
-                    disabled={selectedEquipmentForSchedule.length === 0}
-                  >
-                    Schedule {selectedEquipmentForSchedule.length} Inspection(s)
-                  </button>
-                </div>
-              </div>
-            </div>
+    {/* Form Actions - Updated for mobile */}
+    <div className={styles.scheduleFormActions}>
+      <button
+        type="button"
+        className={styles.scheduleCancel}
+        onClick={resetScheduleForm}
+      >
+        Clear Form
+      </button>
+      <button
+        type="button"
+        className={styles.scheduleSubmit}
+        onClick={handleCreateSchedule}
+        disabled={
+          selectedEquipmentForSchedule.length === 0 || isScheduling
+        }
+      >
+        {isScheduling ? (
+          <>
+            <span className={styles.submissionSpinner}></span>
+            Scheduling...
+          </>
+        ) : (
+          `Schedule ${selectedEquipmentForSchedule.length} Inspection(s)`
+        )}
+      </button>
+    </div>
+  </div>
+</div>
           </div>
 
           {/* Scheduled Inspections Table */}
@@ -3012,17 +2939,10 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
                       inspection.scheduled_date
                     );
 
-                    // Calculate schedule status if not already set
-                    let displayScheduleStatus = inspection.schedule_status;
-                    if (!displayScheduleStatus) {
-                      if (isToday) {
-                        displayScheduleStatus = "ONGOING";
-                      } else if (isFuture) {
-                        displayScheduleStatus = "UPCOMING";
-                      } else {
-                        displayScheduleStatus = "MISSED";
-                      }
-                    }
+                    // The schedule_status is now handled by the database trigger
+                    // Just use what's in the database
+                    const displayScheduleStatus =
+                      inspection.schedule_status || "UPCOMING";
 
                     // Get clearance type for this equipment
                     const clearanceInfo =
@@ -3063,7 +2983,7 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
                         </td>
                         <td>{formatDate(inspection.scheduled_date)}</td>
                         <td>
-                          {/* Schedule Status Badge */}
+                          {/* Schedule Status Badge - now includes DONE */}
                           <span
                             className={`${styles.scheduleStatusBadge} ${
                               styles[displayScheduleStatus?.toLowerCase()]
@@ -3124,16 +3044,9 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
                         </td>
                         <td>
                           <div className={styles.actionButtons}>
-                            {inspection.inspection_status === "Scheduled" &&
-                              isFuture && (
-                                <button
-                                  className={`${styles.IEIBtn} ${styles.IEICheckup}`}
-                                  onClick={() => handleCheckup(inspection)}
-                                >
-                                  Check Up
-                                </button>
-                              )}
-                            {inspection.inspection_status === "Scheduled" &&
+                            {/* Only show Inspect button if status is PENDING and schedule is not DONE */}
+                            {inspection.status === "PENDING" &&
+                              inspection.schedule_status !== "DONE" &&
                               isToday && (
                                 <button
                                   className={`${styles.IEIBtn} ${styles.IEIInspect}`}
@@ -3142,7 +3055,9 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
                                   Inspect
                                 </button>
                               )}
-                            {inspection.inspection_status === "Scheduled" && (
+
+                            {/* Show Reschedule button only for pending inspections */}
+                            {inspection.status === "PENDING" && (
                               <button
                                 className={`${styles.IEIBtn} ${styles.IEIReschedule}`}
                                 onClick={() =>
@@ -3152,9 +3067,21 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
                                 Reschedule
                               </button>
                             )}
-                            {inspection.inspection_status === "Completed" && (
+
+                            {/* Show status if inspection is completed/failed/cancelled */}
+                            {inspection.status === "COMPLETED" && (
                               <span className={styles.completedText}>
-                                Completed
+                                ✓ Completed
+                              </span>
+                            )}
+                            {inspection.status === "FAILED" && (
+                              <span className={styles.failedText}>
+                                ✗ Failed
+                              </span>
+                            )}
+                            {inspection.status === "CANCELLED" && (
+                              <span className={styles.cancelledText}>
+                                Cancelled
                               </span>
                             )}
                           </div>
@@ -3202,131 +3129,152 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
           </div>
 
           {/* Filters Container */}
-          <div className={styles.recentFiltersContainer}>
-            <div className={styles.recentFiltersHeader}>
-              <h3>Filter & Search</h3>
-              <span className={styles.recentResultsInfo}>
-                Showing {filteredRecentInspections.length} of{" "}
-                {recentInspections.length} inspections
-              </span>
-            </div>
+          {/* UPDATED: Filter & Search Section - 2 Column Layout */}
+<div className={styles.recentFiltersContainer}>
+  <div className={styles.recentFiltersHeader}>
+    <h3>Filter & Search</h3>
+    <span className={styles.recentResultsInfo}>
+      Showing {filteredRecentInspections.length} of{" "}
+      {recentInspections.length} inspections
+    </span>
+  </div>
 
-            {/* Search Bar */}
-            <div className={styles.recentFilterGroup}>
-              <input
-                type="text"
-                className={styles.recentSearchInput}
-                placeholder="Search equipment, inspector, findings..."
-                value={recentSearch}
-                onChange={(e) => {
-                  setRecentSearch(e.target.value);
-                  setRecentCurrentPage(1);
-                }}
-              />
-            </div>
+  {/* Search Bar - Full Width */}
+  <div className={styles.recentFilterGroup}>
+    <input
+      type="text"
+      className={styles.recentSearchInput}
+      placeholder="Search equipment, inspector, findings..."
+      value={recentSearch}
+      onChange={(e) => {
+        setRecentSearch(e.target.value);
+        setRecentCurrentPage(1);
+      }}
+    />
+  </div>
 
-            {/* Filter Grid */}
-            <div className={styles.recentFiltersGrid}>
-              <div className={styles.recentFilterGroup}>
-                <label>Category</label>
-                <select
-                  className={styles.recentFilterSelect}
-                  value={recentFilterCategory}
-                  onChange={(e) => {
-                    setRecentFilterCategory(e.target.value);
-                    setRecentCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Categories</option>
-                  {getRecentCategories().map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
+  {/* UPDATED: Filter Grid - 2 Column Layout */}
+  <div className={styles.recentFiltersGridTwoCol}>
+    {/* Left Column */}
+    <div className={styles.recentFilterColumn}>
+      <div className={styles.recentFilterGroup}>
+        <label>Category</label>
+        <select
+          className={styles.recentFilterSelect}
+          value={recentFilterCategory}
+          onChange={(e) => {
+            setRecentFilterCategory(e.target.value);
+            setRecentCurrentPage(1);
+          }}
+        >
+          <option value="">All Categories</option>
+          {getRecentCategories().map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+      </div>
 
-              <div className={styles.recentFilterGroup}>
-                <label>Equipment Status</label>
-                <select
-                  className={styles.recentFilterSelect}
-                  value={recentFilterStatus}
-                  onChange={(e) => {
-                    setRecentFilterStatus(e.target.value);
-                    setRecentCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Status</option>
-                  {getRecentEquipmentStatuses().map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      <div className={styles.recentFilterGroup}>
+        <label>Equipment Status</label>
+        <select
+          className={styles.recentFilterSelect}
+          value={recentFilterStatus}
+          onChange={(e) => {
+            setRecentFilterStatus(e.target.value);
+            setRecentCurrentPage(1);
+          }}
+        >
+          <option value="">All Status</option>
+          {getRecentEquipmentStatuses().map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
 
-              <div className={styles.recentFilterGroup}>
-                <label>Inspection Result</label>
-                <select
-                  className={styles.recentFilterSelect}
-                  value={recentFilterResult}
-                  onChange={(e) => {
-                    setRecentFilterResult(e.target.value);
-                    setRecentCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Results</option>
-                  <option value="PASS">Pass</option>
-                  <option value="FAIL">Fail</option>
-                </select>
-              </div>
-            </div>
+    {/* Right Column */}
+    <div className={styles.recentFilterColumn}>
+      <div className={styles.recentFilterGroup}>
+        <label>Inspection Result</label>
+        <select
+          className={styles.recentFilterSelect}
+          value={recentFilterResult}
+          onChange={(e) => {
+            setRecentFilterResult(e.target.value);
+            setRecentCurrentPage(1);
+          }}
+        >
+          <option value="">All Results</option>
+          <option value="PASS">Pass</option>
+          <option value="FAIL">Fail</option>
+        </select>
+      </div>
 
-            {/* Active Filters Display */}
-            {(recentFilterCategory ||
-              recentFilterStatus ||
-              recentFilterResult ||
-              recentSearch) && (
-              <div className={styles.recentActiveFilters}>
-                {recentSearch && (
-                  <span className={styles.recentFilterTag}>
-                    Search: "{recentSearch}"
-                    <button onClick={() => setRecentSearch("")}>×</button>
-                  </span>
-                )}
-                {recentFilterCategory && (
-                  <span className={styles.recentFilterTag}>
-                    Category: {recentFilterCategory}
-                    <button onClick={() => setRecentFilterCategory("")}>
-                      ×
-                    </button>
-                  </span>
-                )}
-                {recentFilterStatus && (
-                  <span className={styles.recentFilterTag}>
-                    Status: {recentFilterStatus}
-                    <button onClick={() => setRecentFilterStatus("")}>×</button>
-                  </span>
-                )}
-                {recentFilterResult && (
-                  <span className={styles.recentFilterTag}>
-                    Result: {recentFilterResult}
-                    <button onClick={() => setRecentFilterResult("")}>×</button>
-                  </span>
-                )}
-              </div>
-            )}
+      {/* Optional: Add another filter here if needed */}
+      <div className={styles.recentFilterGroup}>
+        <label>Sort By</label>
+        <select
+          className={styles.recentFilterSelect}
+          onChange={() => {}}
+          defaultValue="date"
+        >
+          <option value="date">Inspection Date</option>
+          <option value="equipment">Equipment Name</option>
+          <option value="inspector">Inspector</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
-            {/* Filter Actions */}
-            <div className={styles.recentFiltersActions}>
-              <button
-                className={`${styles.recentFilterBtn} ${styles.recentResetBtn}`}
-                onClick={resetRecentFilters}
-              >
-                Reset Filters
-              </button>
-            </div>
-          </div>
+  {/* Active Filters Display */}
+  {(recentFilterCategory ||
+    recentFilterStatus ||
+    recentFilterResult ||
+    recentSearch) && (
+    <div className={styles.recentActiveFilters}>
+      {recentSearch && (
+        <span className={styles.recentFilterTag}>
+          Search: "{recentSearch}"
+          <button onClick={() => setRecentSearch("")}>×</button>
+        </span>
+      )}
+      {recentFilterCategory && (
+        <span className={styles.recentFilterTag}>
+          Category: {recentFilterCategory}
+          <button onClick={() => setRecentFilterCategory("")}>
+            ×
+          </button>
+        </span>
+      )}
+      {recentFilterStatus && (
+        <span className={styles.recentFilterTag}>
+          Status: {recentFilterStatus}
+          <button onClick={() => setRecentFilterStatus("")}>×</button>
+        </span>
+      )}
+      {recentFilterResult && (
+        <span className={styles.recentFilterTag}>
+          Result: {recentFilterResult}
+          <button onClick={() => setRecentFilterResult("")}>×</button>
+        </span>
+      )}
+    </div>
+  )}
+
+  {/* Filter Actions */}
+  <div className={styles.recentFiltersActions}>
+    <button
+      className={`${styles.recentFilterBtn} ${styles.recentResetBtn}`}
+      onClick={resetRecentFilters}
+    >
+      Reset Filters
+    </button>
+  </div>
+</div>
 
           {/* Pagination */}
           <div className={styles.IEITopPagination}>
@@ -3471,352 +3419,6 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
             )}
           </div>
         </section>
-
-        {/* Keep other modals as they were */}
-        {/* Checkup Modal */}
-        {showCheckupModal && selectedSchedule && (
-          <div className={styles.IEIModal}>
-            <div className={styles.IEIModalContent}>
-              <div className={styles.IEIModalHeader}>
-                <h3>Check Up Equipment</h3>
-                <button
-                  className={styles.IEIModalClose}
-                  onClick={() => setShowCheckupModal(false)}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className={styles.scheduleForm}>
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="scheduledDate">Scheduled Date *</label>
-                    <input
-                      type="date"
-                      id="scheduledDate"
-                      value={formData.scheduled_date}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          scheduled_date: e.target.value,
-                        })
-                      }
-                      required
-                      min={new Date().toISOString().split("T")[0]}
-                    />
-                  </div>
-
-                  {/* Inspector field as select dropdown */}
-                  <div className={styles.formGroup}>
-                    <label htmlFor="inspector">Inspector *</label>
-                    <select
-                      id="inspector"
-                      value={formData.inspector_id}
-                      onChange={(e) => {
-                        setFormData({
-                          ...formData,
-                          inspector_id: e.target.value,
-                        });
-                      }}
-                      required
-                      className={styles.inspectorSelect}
-                    >
-                      <option value=""></option>
-                      {personnelList.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.first_name} {person.last_name}
-                          {person.badge_number
-                            ? ` (${person.badge_number})`
-                            : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Personnel Filter */}
-                  <div className={styles.formGroup}>
-                    <label htmlFor="selectedPersonnel">
-                      Filter by Personnel (Optional)
-                    </label>
-                    <select
-                      id="selectedPersonnel"
-                      value={formData.selected_personnel}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          selected_personnel: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">All Personnel</option>
-                      <option value="Unassigned">Unassigned</option>
-                      {getAssignedPersonnel().map((personName, index) => (
-                        <option key={index} value={personName}>
-                          {personName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className={styles.equipmentSelectionSection}>
-                  <h4>
-                    Select Equipment to Inspect
-                    {formData.selected_personnel && (
-                      <span className={styles.filterNote}>
-                        (Filtered by: {formData.selected_personnel})
-                      </span>
-                    )}
-                  </h4>
-
-                  <div className={styles.equipmentFilters}>
-                    <input
-                      type="text"
-                      placeholder="🔍 Search equipment..."
-                      value={equipmentSearch}
-                      onChange={(e) => setEquipmentSearch(e.target.value)}
-                      className={styles.searchInput}
-                    />
-
-                    <select
-                      value={equipmentFilterCategory}
-                      onChange={(e) =>
-                        setEquipmentFilterCategory(e.target.value)
-                      }
-                      className={styles.filterSelect}
-                    >
-                      <option value="">All Categories</option>
-                      <option value="Firefighting Equipment">
-                        Firefighting Equipment
-                      </option>
-                      <option value="Protective Gear">Protective Gear</option>
-                      <option value="Vehicle Equipment">
-                        Vehicle Equipment
-                      </option>
-                      <option value="Communication Equipment">
-                        Communication Equipment
-                      </option>
-                      <option value="Medical Equipment">
-                        Medical Equipment
-                      </option>
-                      <option value="Tools">Tools</option>
-                      <option value="Other">Other</option>
-                    </select>
-
-                    <select
-                      value={equipmentFilterStatus}
-                      onChange={(e) => setEquipmentFilterStatus(e.target.value)}
-                      className={styles.filterSelect}
-                    >
-                      <option value="">All Status</option>
-                      <option value="Good">Good</option>
-                      <option value="Needs Maintenance">
-                        Needs Maintenance
-                      </option>
-                      <option value="Damaged">Damaged</option>
-                      <option value="Under Repair">Under Repair</option>
-                      <option value="Retired">Retired</option>
-                      <option value="Lost">Lost</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.equipmentTableContainer}>
-                    <table className={styles.equipmentTable}>
-                      <thead>
-                        <tr>
-                          <th style={{ width: "50px" }}>
-                            <input
-                              type="checkbox"
-                              checked={
-                                selectedEquipmentForSchedule.length ===
-                                  filteredEquipment.length &&
-                                filteredEquipment.length > 0
-                              }
-                              onChange={() => {
-                                if (
-                                  selectedEquipmentForSchedule.length ===
-                                  filteredEquipment.length
-                                ) {
-                                  setSelectedEquipmentForSchedule([]);
-                                } else {
-                                  setSelectedEquipmentForSchedule(
-                                    filteredEquipment.map((item) => item.id)
-                                  );
-                                }
-                              }}
-                            />
-                          </th>
-                          <th>Equipment Name</th>
-                          <th>Barcode/Serial Number</th>
-                          <th>Category</th>
-                          <th>Status</th>
-                          <th>Assigned To</th>
-                          <th>Assigned Date</th>
-                          <th>Last Assigned</th>
-                          <th>Unassigned Date</th>
-                          <th>Clearance Request</th>
-                          <th>Price</th>
-                          <th>Purchase Date</th>
-                          <th>Last Checked</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredEquipment.length > 0 ? (
-                          filteredEquipment.map((item) => {
-                            const clearanceInfo =
-                              equipmentClearanceMap[item.id];
-                            const hasClearance =
-                              clearanceInfo?.hasClearance || false;
-                            const clearanceType = clearanceInfo?.type || "";
-
-                            // Check if this equipment already has pending inspection
-                            const hasPendingInspection =
-                              pendingInspectionsMap &&
-                              pendingInspectionsMap[item.id];
-
-                            return (
-                              <tr
-                                key={item.id}
-                                style={
-                                  hasClearance
-                                    ? { backgroundColor: "#fff9e6" }
-                                    : hasPendingInspection
-                                    ? {
-                                        backgroundColor: "#ffe6e6",
-                                        opacity: 0.6,
-                                      }
-                                    : {}
-                                }
-                              >
-                                <td>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedEquipmentForSchedule.includes(
-                                      item.id
-                                    )}
-                                    onChange={() =>
-                                      toggleEquipmentSelection(item.id)
-                                    }
-                                    disabled={hasPendingInspection}
-                                  />
-                                </td>
-                                <td>{item.item_name}</td>
-                                <td>{item.item_code}</td>
-                                <td>{item.category}</td>
-                                <td>
-                                  <span
-                                    className={`${styles.statusBadge} ${
-                                      styles[item.status?.replace(" ", "")]
-                                    }`}
-                                  >
-                                    {item.status}
-                                  </span>
-                                </td>
-                                <td>{item.assigned_to || "Unassigned"}</td>
-                                {/* NEW: Assigned Date Column */}
-                                <td>
-                                  {item.assigned_date
-                                    ? formatDate(item.assigned_date)
-                                    : "N/A"}
-                                </td>
-                                {/* NEW: Last Assigned Column */}
-                                <td>{item.last_assigned || "N/A"}</td>
-                                {/* NEW: Unassigned Date Column */}
-                                <td>
-                                  {item.unassigned_date
-                                    ? formatDate(item.unassigned_date)
-                                    : "N/A"}
-                                </td>
-                                <td>
-                                  {hasClearance ? (
-                                    <div className={styles.clearanceIndicator}>
-                                      <span className={styles.clearanceBadge}>
-                                        ⚠️ {clearanceType}
-                                      </span>
-                                      <div className={styles.clearanceTooltip}>
-                                        <p>
-                                          Clearance Request ID:
-                                          {clearanceInfo.requestId}
-                                        </p>
-                                        <p>Type: {clearanceType}</p>
-                                      </div>
-                                    </div>
-                                  ) : hasPendingInspection ? (
-                                    <div
-                                      className={
-                                        styles.pendingInspectionIndicator
-                                      }
-                                    >
-                                      <span className={styles.pendingBadge}>
-                                        ⚠️ Pending Inspection
-                                      </span>
-                                      <div className={styles.pendingTooltip}>
-                                        <p>
-                                          This equipment already has a pending
-                                          inspection scheduled.
-                                        </p>
-                                        <p>
-                                          Complete or cancel the existing
-                                          inspection first.
-                                        </p>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <span className={styles.noClearance}>
-                                      —
-                                    </span>
-                                  )}
-                                </td>
-                                <td>
-                                  {item.price ? formatPHP(item.price) : "₱0.00"}
-                                </td>
-                                <td>{formatDate(item.purchase_date)}</td>
-                                <td>{formatDate(item.last_checked)}</td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan="100" className={styles.noEquipment}>
-                              {formData.selected_personnel
-                                ? `No equipment found assigned to ${formData.selected_personnel}`
-                                : "No equipment found matching your criteria"}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className={styles.selectionSummary}>
-                    <p>
-                      Selected: {selectedEquipmentForSchedule.length} equipment
-                      items
-                    </p>
-                  </div>
-                </div>
-
-                <div className={styles.IEIModalButtons}>
-                  <button
-                    type="button"
-                    className={styles.IEICancelBtn}
-                    onClick={() => setShowScheduleModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.IEIBtn} ${styles.IEISubmitBtn}`}
-                    onClick={handleCreateSchedule}
-                    disabled={selectedEquipmentForSchedule.length === 0}
-                  >
-                    Schedule {selectedEquipmentForSchedule.length} Inspection(s)
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Checkup Modal */}
         {showCheckupModal && selectedSchedule && (
@@ -4067,8 +3669,16 @@ const checkAndCompletePersonnelClearance = async (personnelId, requestIds) => {
                     type="button"
                     className={`${styles.IEIBtn} ${styles.IEISubmitBtn}`}
                     onClick={submitInspection}
+                    disabled={isInspecting} // Disable while loading
                   >
-                    Complete Inspection
+                    {isInspecting ? (
+                      <>
+                        <span className={styles.submissionSpinner}></span>
+                        Processing...
+                      </>
+                    ) : (
+                      "Complete Inspection"
+                    )}
                   </button>
                 </div>
               </div>

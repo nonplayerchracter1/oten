@@ -14,7 +14,7 @@ import Login from "./components/Login";
 import AdminDashboard from "./components/admin/JSX/AdminDashboard";
 import InventoryControl from "./components/admin/JSX/InventoryControl";
 import LeaveManagement from "./components/admin/JSX/LeaveManagement";
-import ClearanceSystem from "./components/admin/JSX/ClearanceSystem";
+import ClearanceSystem from "./components/ClearanceSystemFolder/ClearanceSystem"
 import PersonnelRegister from "./components/admin/JSX/PersonnelRegister";
 import PersonnelProfile from "./components/admin/JSX/PersonnelProfile";
 import LeaveRecords from "./components/admin/JSX/LeaveRecords";
@@ -28,9 +28,6 @@ import Placement from "./components/admin/JSX/Placement";
 import History from "./components/admin/JSX/History";
 import PersonnelRecentActivity from "./components/admin/JSX/PersonnelRecentActivity";
 
-// Recruitment Components
-import RecruitmentDashboard from "./components/admin/JSX/RecruitmentDashboard";
-
 // Employee Components
 import EmployeeDashboard from "./components/employee/JSX/EmployeeDashboard";
 import EmployeeLeaveDashboard from "./components/employee/JSX/EmployeeLeaveDashboard";
@@ -42,6 +39,10 @@ import InspectorInventoryControl from "./components/inspector/JSX/InspectorInven
 import InspectorEquipmentInspection from "./components/inspector/JSX/InspectorEquipmentInspection";
 import InspectorInspectionReport from "./components/inspector/JSX/InspectorInspectionReport";
 import InspectionHistory from "./components/inspector/JSX/InspectionHistory";
+
+// Recruitment Profile Component
+import RecruitmentProfile from "./components/recruiment_applicant/JSX/RecruitmentProfile";
+import RecruitmentDashboard from "./components/recruiment_applicant/JSX/RecruitmentDashboard";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { HeadProvider } from "react-head";
@@ -176,24 +177,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
-              {/* Recruitment Personnel routes */}
-              <Route
-                path="/recruitment"
-                element={
-                  <ProtectedRoute requiredRole="recruitment">
-                    <RecruitmentDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recruitment/profile"
-                element={
-                  <ProtectedRoute requiredRole="recruitment">
-                    <PersonnelProfile isRecruitment={true} />
-                  </ProtectedRoute>
-                }
-              />
               <Route
                 path="/personnelRecentActivity"
                 element={
@@ -203,9 +186,27 @@ function App() {
                 }
               />
 
+              {/* Recruitment Personnel routes */}
+              <Route
+                path="/recruitment/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="applicant">
+                    <RecruitmentDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recruitment/profile"
+                element={
+                  <ProtectedRoute requiredRole="applicant">
+                    <RecruitmentProfile />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Inspector routes */}
               <Route
-                path="/InspectorDashboard"
+                path="/inspectorDashboard"
                 element={
                   <ProtectedRoute requiredRole="inspector">
                     <InspectorDashboard />
@@ -213,7 +214,7 @@ function App() {
                 }
               />
               <Route
-                path="/inspectorInventoryControl"
+                path="/inspector/inventory"
                 element={
                   <ProtectedRoute requiredRole="inspector">
                     <InspectorInventoryControl />
@@ -221,7 +222,7 @@ function App() {
                 }
               />
               <Route
-                path="/inspectorEquipmentInspection"
+                path="/inspector/equipment"
                 element={
                   <ProtectedRoute requiredRole="inspector">
                     <InspectorEquipmentInspection />
@@ -229,7 +230,7 @@ function App() {
                 }
               />
               <Route
-                path="/inspectorInspectionReport"
+                path="/inspector/report"
                 element={
                   <ProtectedRoute requiredRole="inspector">
                     <InspectorInspectionReport />
@@ -237,7 +238,7 @@ function App() {
                 }
               />
               <Route
-                path="/InspectionHistory"
+                path="/inspector/history"
                 element={
                   <ProtectedRoute requiredRole="inspector">
                     <InspectionHistory />
@@ -245,9 +246,17 @@ function App() {
                 }
               />
 
-              {/* Employee-only routes */}
+              {/* Employee routes - Fixed to use new structure */}
               <Route
                 path="/employee"
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <Navigate to="/employee/dashboard" replace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/employee/dashboard"
                 element={
                   <ProtectedRoute requiredRole="employee">
                     <EmployeeDashboard />
@@ -255,7 +264,7 @@ function App() {
                 }
               />
               <Route
-                path="/employeeLeaveDashboard"
+                path="/employee/leave-dashboard"
                 element={
                   <ProtectedRoute requiredRole="employee">
                     <EmployeeLeaveDashboard />
@@ -263,13 +272,15 @@ function App() {
                 }
               />
               <Route
-                path="/employeeLeaveRequest"
+                path="/employee/leave-request"
                 element={
                   <ProtectedRoute requiredRole="employee">
                     <EmployeeLeaveRequest />
                   </ProtectedRoute>
                 }
               />
+
+              {/* Legacy routes - Redirect to new ones */}
 
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />

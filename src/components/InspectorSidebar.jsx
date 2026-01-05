@@ -24,8 +24,7 @@ const InspectorSidebar = () => {
 
   return (
     <div className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-      <div className="theme-toggle">
-      </div>
+      <div className="theme-toggle"></div>
       <div className="sidebar-inner">
         <h2>Inspector</h2>
         <a
@@ -63,42 +62,36 @@ const InspectorSidebar = () => {
           📊 <span>Dashboard</span>
         </a>
         <a
-          href="/inspectorInventoryControl"
-          onClick={(e) => handleTabClick(e, "/inspectorInventoryControl")}
-          className={`${
-            isTabActive("/inspectorInventoryControl") ? "active" : ""
-          }`}
+          href="/inspector/inventory"
+          onClick={(e) => handleTabClick(e, "/inspector/inventory")}
+          className={`${isTabActive("/inspector/inventory") ? "active" : ""}`}
         >
           🔍 <span> Inventory Control</span>
         </a>
         <a
-          href="/inspectorEquipmentInspection"
-          onClick={(e) => handleTabClick(e, "/inspectorEquipmentInspection")}
-          className={`${
-            isTabActive("/inspectorEquipmentInspection") ? "active" : ""
-          }`}
+          href="/inspector/equipment"
+          onClick={(e) => handleTabClick(e, "/inspector/equipment")}
+          className={`${isTabActive("/inspector/equipment") ? "active" : ""}`}
         >
           🛠️ <span>Equipment Inspection</span>
         </a>
         <a
-          href="/inspectorInspectionReport"
-          onClick={(e) => handleTabClick(e, "/inspectorInspectionReport")}
-          className={`${
-            isTabActive("/inspectorInspectionReport") ? "active" : ""
-          }`}
+          href="/inspector/report"
+          onClick={(e) => handleTabClick(e, "/inspector/report")}
+          className={`${isTabActive("/inspector/report") ? "active" : ""}`}
         >
           📋 <span>Inspection Report</span>
         </a>
 
         {/* Additional inspector tools */}
         <a
-          href="/InspectionHistory"
-          onClick={(e) => handleTabClick(e, "/InspectionHistory")}
-          className={`${isTabActive("/InspectionHistory") ? "active" : ""}`}
+          href="/inspector/history"
+          onClick={(e) => handleTabClick(e, "/inspector/history")}
+          className={`${isTabActive("/inspector/history") ? "active" : ""}`}
         >
           📅 <span>Inspection History</span>
         </a>
-    
+
 
         <a href="/" onClick={(e) => handleTabClick(e, "/")}>
           🚪 <span>Logout</span>

@@ -1,624 +1,1356 @@
-/* ================================
-  CSS VARIABLES & RESET
-=============================== */
-:root {
-  --sidebar-width: 280px;
-  --sidebar-collapsed-width: 100px;
-  --bg-buttons: #2563eb;
-  --bg-buttons_active: #1d4ed8;
-  --text-primary: #1f2937;
-  --accent: #3b82f6;
-  
-  /* Facebook Blue */
-  --facebook-blue: #1877f2;
-  --facebook-blue-hover: #166fe5;
-  --facebook-gray: #f0f2f5;
-  --facebook-dark-gray: #65676b;
-  --facebook-card-bg: #ffffff;
-  --facebook-border: #dddfe2;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
-  
-  /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.3s ease;
-  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 /* ================================
-  SIDEBAR CONTAINER - FIXED
+  HAMBURGER MENU
 =============================== */
-.sidebar {
+.hamburger {
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: var(--sidebar-width);
-  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
-  color: var(--text-primary);
-  padding: 20px 0;
-  z-index: 1000;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  transition: all var(--transition-slow);
-  will-change: transform, width;
+  top: 15px;
+  left: 15px;
+  width: 36px;
+  height: 28px;
   display: flex;
   flex-direction: column;
-}
-
-/* Facebook Mobile Sidebar Overlay */
-.mobileOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 999;
-  animation: fadeIn 0.3s ease;
-}
-
-/* Mobile Close Button */
-.mobileCloseBtn {
-  display: none;
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--facebook-blue);
-  color: white;
+  justify-content: space-between;
+  background: var(--bg-buttons);
   border: none;
-  font-size: 1.2rem;
+  border-radius: 6px;
+  padding: 6px;
   cursor: pointer;
-  z-index: 1001;
-  box-shadow: var(--shadow-md);
-  transition: var(--transition-normal);
+  z-index: 1110;
+  transition: background 0.3s ease;
 }
 
-.mobileCloseBtn:hover {
-  background: var(--facebook-blue-hover);
-  transform: scale(1.05);
+.hamburger .bar {
+  width: 100%;
+  height: 4px;
+  background-color: white;
+  border-radius: 2px;
+  transition: all 0.4s ease;
 }
 
-.sidebarInner {
-  height: 100%;
-  overflow-y: auto;
-  padding: 0 15px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--facebook-blue) transparent;
+.hamburger.active .top {
+  transform: translateY(10px) rotate(45deg);
 }
 
-.sidebarInner::-webkit-scrollbar {
-  width: 4px;
+.hamburger.active .middle {
+  opacity: 0;
 }
 
-.sidebarInner::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebarInner::-webkit-scrollbar-thumb {
-  background: var(--facebook-blue);
-  border-radius: 4px;
+.hamburger.active .bottom {
+  transform: translateY(-10px) rotate(-45deg);
 }
 
 /* ================================
-  COLLAPSED SIDEBAR
+  THEME TOGGLE - MOVED INSIDE SIDEBAR
 =============================== */
-.sidebar.collapsed {
-  width: var(--sidebar-collapsed-width);
-  padding: 20px 5px;
+
+.sidebar.collapsed .dropdown-content.show {
+  display: block !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
 }
 
-.sidebar.collapsed .logoText,
-.sidebar.collapsed .linkText,
-.sidebar.collapsed .sidebarTitle {
-  display: none;
+/* Optional: Style the dropdown toggle differently when it has an active child */
+.dropdown-toggle.has-active-child {
+  background-color: var(--active-color);
+  font-weight: bold;
 }
 
-.sidebar.collapsed .logoLink {
-  justify-content: center;
+.sidebar.collapsed .dropdown-section.active .dropdown-content {
+  display: none !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+
+  pointer-events: auto !important;
 }
 
-.sidebar.collapsed .navLink {
-  justify-content: center;
-  padding: 12px;
+/* ================================================
+  DROPDOWN CONTENT BACKGROUNDS - BOTH COLLAPSED & UNCOLLAPSED
+================================================ */
+
+
+
+/* Enhanced dropdown content for collapsed state */
+.sidebar.collapsed .dropdown-content {
+  position: absolute;
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  top: -60px;
+  margin-right: -350px;
+  box-shadow: -6px 4px 15px rgba(0, 0, 0, 0.743);
+  z-index: 9999;
 }
 
-/* ================================
-  LOGO SECTION
-=============================== */
-.logoLink {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  margin-bottom: 24px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.8);
-  transition: var(--transition-normal);
+/* Ensure dropdown links show text even when collapsed */
+.sidebar.collapsed .dropdown-content a span {
+  display: inline !important;
+  color: white !important;
 }
 
-.logoLink:hover {
-  background: var(--facebook-gray);
-  transform: translateY(-1px);
+.sidebar .theme-toggle {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 1200;
 }
 
-.logoImage {
+.sidebar .theme-toggle button {
+  font-size: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  padding: 5px;
+  border-radius: 50%;
   width: 36px;
   height: 36px;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 2px solid var(--facebook-blue);
-}
-
-.logoText {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--facebook-blue);
-  white-space: nowrap;
-}
-
-/* ================================
-  SIDEBAR TITLE
-=============================== */
-.sidebarTitle {
-  font-size: 1.3rem;
-  color: var(--text-primary);
-  margin: 0 0 24px 12px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--facebook-blue);
-  font-weight: 700;
-}
-
-/* ================================
-  NAVIGATION LINKS
-=============================== */
-.navLinks {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.navLink {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+}
+
+.sidebar .theme-toggle button:hover {
+  transform: rotate(20deg) scale(1.1);
+  background: rgb(255, 255, 255);
+}
+
+/* Adjust sidebar padding to accommodate theme toggle */
+.sidebar {
+  width: 280px;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: rgb(219, 219, 219);
+  color: var(--text-primary);
+  padding-left: 10px;
+  padding-right: 17px;
+  padding-top: 70px; /* Increased to make space for theme toggle */
+  z-index: 1000;
+  overflow:visible !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4);
+  transition: background 0.3s ease, width 0.4s ease;
+  pointer-events: auto;
+
+}
+.sidebar-inner {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px; /* Space for scrollbar */
+  margin-right: -20px; /* Pull content to accommodate scrollbar */
+  
+  /* Hide scrollbar visually but keep functionality */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-buttons) transparent;
+}
+
+.sidebar-inner::-webkit-scrollbar {
+  width: 1px;
+}
+
+.sidebar-inner::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 10px 0;
+}
+
+.sidebar-inner::-webkit-scrollbar-thumb {
+  background: var(--bg-buttons);
+  border-radius: 4px;
+ 
+}
+
+.sidebar-inner::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-buttons_active);
+}
+
+/* When sidebar is collapsed, adjust theme toggle position */
+.sidebar.collapsed .theme-toggle {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  left: auto;
+}
+
+.sidebar.collapsed .theme-toggle button {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+}
+
+
+
+
+.sidebar h2 {
+  font-size: 22px;
+  color: black;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 10px;
+  font-weight: bold;
+  margin-top: 10px; /* Added space below theme toggle */
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
-  padding: 14px 16px;
-  border-radius: 12px;
-  font-size: 0.95rem;
+  margin: 8px -1px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 500;
-  color: var(--facebook-dark-gray);
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid transparent;
-  transition: all var(--transition-normal);
+  color: var(--text-primary);
+  background: rgba(255, 254, 254, 0.793);
+
+  border-left: 4px solid rgb(175, 175, 175);
+  border-bottom:4px solid rgb(175, 175, 175) ;
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+  
+}
+.sidebar a::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+
+  transition: all 0.4s ease;
+  z-index: 0;
+  border-radius: 10px;
+}
+
+.sidebar a:hover::before {
+  left: 0;
+}
+
+.sidebar a span,
+.sidebar a i {
+  position: relative;
+  z-index: 1;
+  
+}
+
+.sidebar a:hover {
+  color: #fff;
+  background: var(--bg-buttons_active);
+  transform: translateX(5px) scale(1.03);
+   box-shadow: 0 5px 2px rgba(89, 91, 93, 0.597);
+  border-left:4px solid white ;
+  border-bottom: 4px solid white;
+}
+
+/* ================================
+  NO-HOVER LINKS
+=============================== */
+.sidebar a.no-hover,
+.sidebar a.no-hover:hover {
+  background: none ;
+  border: none !important;
+  color: #000 !important;
+  transform: none !important;
+  box-shadow: none !important;
+position: relative;
+width: 400px;
+
+}
+.sidebar.collapsed a.no-hover {
+position: relative;
+width: 400px;
+
+right: 175px;
+}
+.sidebar a.no-hover::before {
+  display: none !important;
+}
+
+/* Collapsed Sidebar */
+.sidebar.collapsed {
+  width: 100px;
+  overflow-x: hidden;
+}
+.sidebar.collapsed img{
+  position: relative;
+  left: 10px;
+
+}
+.sidebar.collapsed h2,
+.sidebar.collapsed img + span,
+.sidebar.collapsed a span,
+.sidebar.collapsed .dropdown-toggle span {
+
+
+  display: none;
+}
+
+.sidebar.collapsed a,
+.sidebar.collapsed .dropdown-toggle {
+  justify-content: center;
+}
+
+/* ================================
+  DROPDOWN MODULES - FIXED VERSION
+=============================== */
+.dropdown-section {
+  position: relative;
+}
+
+.dropdown-toggle {
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 8px 0;
+  color: var(--text-primary);
+  background: rgb(255, 255, 255);
+  transition: all 0.35s ease-in-out;
+  position: relative;
+  z-index: 100;
+}
+
+
+/* ================================================
+  DROPDOWN CONTENT - FIXED FOR COLLAPSED STATE
+================================================ */
+.personnel-records .dropdown-content a {
+  background: rgba(184, 6, 212, 0.85)!important;
+  margin-bottom: 5px;
+  border-left: 4px solid rgb(255, 255, 255) !important;
+  border-bottom: 4px solid rgb(255, 255, 255) !important;
+}
+.personnel-records .dropdown-content a:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  border-left: 4px solid rgb(242, 0, 234) !important;
+   border-bottom: 4px solid rgb(242, 0, 234) !important;
+}
+.morale-records .dropdown-content a {
+  background: rgba(255, 2, 82, 0.85);
+  border-left: 4px solid rgb(255, 255, 255) !important;
+   border-bottom: 4px solid rgb(255, 255, 255) !important;
+  margin-bottom: 5px;
+}
+.morale-records .dropdown-content a:hover {
+  background: rgba(255, 2, 82, 0.85);
+  border-left: 4px solid rgba(152, 1, 49, 0.85) !important;
+  border-bottom: 4px solid rgba(152, 1, 49, 0.85) !important;
+  margin-bottom: 5px;
+}
+.hr-records .dropdown-content a {
+  background: rgb(0, 98, 255);
+  border-left: 4px solid rgb(255, 255, 255) !important;
+   border-bottom: 4px solid rgb(255, 255, 255) !important;
+  margin-bottom: 5px;
+}
+.hr-records .dropdown-content a:hover {
+  background: rgb(0, 98, 255);
+  border-left: 4px solid rgba(0, 52, 136, 0.85) !important;
+   border-bottom: 4px solid rgba(0, 52, 136, 0.85) !important;
+}
+.personnel-records .dropdown-content {
+ background: rgba(156, 156, 156, 0.2)!;
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  position: absolute;
+  top: -45px;
+
+}
+.morale-records .dropdown-content {
+ background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+
+  position: absolute;
+  top: 4px;
+  width: 289px;
+}
+.hr-records .dropdown-content {
+ background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  transition: all 0.35s ease;
+  position: absolute;
+  top: -25px;
+}
+
+.hr-records .dropdown-toggle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -70%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  opacity: 0.3;
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+
+/* Sweep across on hover */
+.hr-records .dropdown-toggle:hover::before {
+  left: 130%;
+}
+
+/* Subtle floating pulse (blue glow) */
+.hr-records .dropdown-toggle:hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+  animation: floatPulse 2s ease-in-out infinite alternate;
+}
+
+/* Floating pulse animation */
+@keyframes floatPulse {
+  from {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    transform: translateY(0);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.7);
+    transform: translateY(-2px);
+  }
+}
+.dropdown-section:hover .dropdown-content,
+.dropdown-content.show {
+  display: block;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+
+/* Dropdown links styling */
+.dropdown-content a {
+  display: flex;
+
+  gap: 10px;
+  color: white !important;
+  padding: 10px 15px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  margin: 0 5px;
+  width: calc(100% - 10px);
+  font-weight: 500;
+}
+.dropdown-content,
+.dropdown-tooltip {
+  position:fixed!important; /* Use fixed instead of absolute */
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  width: 324px!important;
+
+
+}
+/* Rotate arrow */
+.dropdown-section:hover .arrow {
+  transform: rotate(270deg);
+  transition: transform 0.3s ease;
+}
+
+
+
+.tooltip-items {
+  padding: 1px 0;
+}
+.morale-records .dropdown-tooltip {
+  position: absolute;
+  margin-right: -100px;
+  border-radius: 12px;
+  padding: 0;
+  left: 100px;
+  padding-top: 10px;
+  margin-top: -10px;
+  min-width: 280px;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+
+.hr-records.dropdown-tooltip {
+  position: absolute;
+  margin-right: -100px;
+  border-radius: 12px;
+  padding: 0;
+  left: 10px;
+
+  margin-top: -190px !important;
+  min-width: 280px;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tooltip-header {
+  padding: 12px 16px;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+.tooltip-items a {
+  display: flex;
+
+  gap: 12px;
+
+  padding: 10px 16px;
+
+  color: white;
+  transition: all 0.2s ease;
+width: 300px!important;
+  margin: 2px 4px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+.dropdown-tooltip {
+  position: absolute;
+  margin-right: -100px;
+  border-radius: 12px;
+  padding: 0;
+  left: 100px;
+
+  margin-top: -91px;
+  min-width: 300px;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+.personnel-records .tooltip-header {
+   background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+}
+
+
+
+.morale-records .tooltip-header {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2);
+}
+
+
+
+.hr-records .tooltip-header {
+  background: linear-gradient(135deg, #0665ff, #2563eb);
+}
+.personnel-records .dropdown-toggle {
+  background: rgba(255, 0, 255, 0.228);
+  border-left: 4px solid rgb(242, 0, 234);
+   border-bottom: 4px solid rgb(242, 0, 234);
+}
+
+.personnel-records .dropdown-toggle:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  animation: pulseGlow 1.6s ease-in-out infinite;
+}
+
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(255, 0, 204, 0.703);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(255, 2, 204, 0.991);
+  }
+}
+
+.morale-records .dropdown-toggle {
+  background: rgba(255, 99, 132, 0.15);
+  border-left: 4px solid #ff6384;
+   border-bottom: 4px solid #ff6384;
+}
+
+.morale-records .dropdown-toggle:hover {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2);
+  color: #fff;
+   border-left: 4px solid #d32e52;
+   border-bottom: 4px solid #d32e52;
+  box-shadow: 0 0 18px rgba(255, 99, 132, 0.6);
+  animation: heartbeat 1.4s ease-in-out infinite;
+  transform: translateY(-2px) scale(2.03);
+}
+
+@keyframes heartbeat {
+  0%,
+  100% {
+    transform: scale(1.04);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* === HR RECORDS === */
+.hr-records .dropdown-toggle {
+  background: rgba(59, 130, 246, 0.12);
+  border-left: 4px solid #3b82f6;
+   border-bottom: 4px solid #3b82f6;
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s ease;
+}
+
+.hr-records .dropdown-toggle:hover {
+  color: #fff;
+   border-left: 4px solid #234f96;
+   border-bottom: 4px solid #234f96;
+  background: linear-gradient(135deg, #0280ff, #0004fb);
+  box-shadow: 0 0 22px rgba(0, 255, 225, 0.772);
+}
+
+/* ================================================
+  COLLAPSED SIDEBAR TOOLTIP ITEM BACKGROUND COLORS - FIXED
+================================================ */
+
+/* Personnel Records Tooltip Items - RED */
+
+.dropdown-content {
+  position:fixed !important;
+  left: 250px !important; /* Position relative to sidebar width */
+  top: 23px;
+  margin-top: 380px;
+  margin-left: 5px;
+  width: 310px!important;
+  border-radius: 8px;
+  box-shadow: 6px 4px 15px rgba(0, 0, 0, 0.743);
+  padding: 8px 0;
+  display: none;
+  opacity: 0;
+ 
+  transform: translateX(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+}
+.sidebar.collapsed .personnel-records.dropdown-tooltip .tooltip-items {
+background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  margin-bottom: 7px;
+
+}
+.sidebar.collapsed .morale-records.dropdown-tooltip .tooltip-items {
+background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  border-radius: 5px;
+  margin-bottom: 7px;
+}
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items {
+background: rgba(156, 156, 156, 0.2);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  margin-bottom: 11px;
+
+  text-align: left;
+}
+
+.sidebar.collapsed .personnel-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(148, 0, 211, 0.9)
+  );
+  border-left: 4px solid rgb(255, 255, 255);
+   border-bottom: 4px solid rgb(255, 255, 255);
+}
+
+.sidebar.collapsed .personnel-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  border-left: 4px solid rgb(242, 0, 234) !important;
+   border-bottom: 4px solid rgb(242, 0, 234) !important;
+  animation: pulseGlow 1.6s ease-in-out infinite;
+}.sidebar.collapsed .personnel-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  border-left: 4px solid rgb(242, 0, 234) !important;
+   border-bottom: 4px solid rgb(242, 0, 234) !important;
+  animation: pulseGlow 1.6s ease-in-out infinite;
+}
+
+/* Morale & Welfare Tooltip Items - BLUE */
+
+.sidebar.collapsed .morale-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(135deg, #ff6384, #e6091b);
+  border-left: 4px solid #ffffff;
+ border-bottom: 4px solid #ffffff;
+  width: 280px;
+}
+.sidebar.collapsed .morale-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2) !important;
+  border-left: 4px solid #ff6384 !important;
+    border-bottom: 4px solid #ff6384 !important;
+  animation: heartbeat 1.4s ease-in-out infinite;
+  transform: translateY(-2px) scale(1.1);
+}
+
+/* HR Management Tooltip Items - GREEN */
+
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(135deg, #0280ff, #0004fb);
+  border-left: 4px solid #ffffff;
+   border-bottom: 4px solid #ffffff;
+  width: 280px;
+
+}
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(135deg, #0280ff, #0004fb) !important;
+  border-left: 4px solid #3b82f6 !important;
+  border-bottom: 4px solid #3b82f6 !important;
+}
+
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:before {
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 255, 255, 0.803),
+    transparent
+  );
+  opacity: 0.3;
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:hover::before {
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgb(255, 255, 255),
+    transparent
+  );
+  opacity: 0.3;
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  left: 230px;
+}
+
+.sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a:hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+  animation: floatPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes floatPulse {
+  from {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    transform: translateY(0);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.7);
+    transform: translateY(-2px);
+  }
+}
+
+
+
+.header p {
+  color: #333;
+  font-size: 16px;
+}
+
+.dropdown-section::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: 100px;
+  height: 100%;
+  width: 10px;
+  z-index: 9998;
+}
+
+.sidebar a.active {
+  background: rgb(255, 255, 255) !important;
+  color: #000000 !important;
+  font-weight: bold;
+  transform: translateX(5px);
+  box-shadow: 0 5px 2px rgba(16, 95, 175, 0.597);
+  border-left: 4px solid var(--bg-buttons) !important;
+  border-bottom: 4px solid var(--bg-buttons)!important;
+}
+
+
+
+
+.main-content {
+  margin-left: calc(var(--sidebar-width) + 10px);
+  padding: 28px 20px;
+  box-sizing: border-box;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+    background: rgb(219, 219, 219);
+  padding-left: 300px;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  /* cubic-bezier for smoother acceleration/deceleration */
+}
+
+.main-content.collapsed {
+  margin-left: 80px;
+  padding-left: 40px;
+  margin-top: 0px;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+
+
+
+
+/* Tooltip for expanded sidebar state */
+.dropdown-tooltip.expanded-state {
+  margin-left: 0;
+  margin-top: -10px;
+  animation: fadeIn 0.2s ease;
+  z-index: 10000;
+}
+
+/* Remove the old dropdown content styles since we're using tooltips for both states */
+.dropdown-content {
+  display: none; /* Hide the old dropdown content */
+}
+
+/* Keep the tooltip positioning for collapsed state */
+.sidebar.collapsed .dropdown-tooltip.collapsed-state {
+  margin-right: -100px;
+  left: 100px;
+}
+
+/* Adjust tooltip positioning based on sidebar state */
+.sidebar:not(.collapsed) .dropdown-tooltip.expanded-state {
+  margin-left: 0;
+  left: auto;
+  right: auto;
+}
+
+/* Ensure the arrow rotates on hover */
+.dropdown-section:hover .arrow {
+  transform: rotate(270deg);
+  transition: transform 0.3s ease;
+}
+
+/* Style adjustments for dropdown sections when sidebar is expanded */
+.sidebar:not(.collapsed) .dropdown-section {
+  position: relative;
+}
+
+/* Remove any conflicting styles for the old dropdown content */
+.personnel-records .dropdown-content,
+.morale-records .dropdown-content,
+.hr-records .dropdown-content {
+  display: none;
+}
+
+/* Make sure the dropdown toggle has proper hover states */
+.dropdown-section:hover .dropdown-toggle {
+  position: relative;
+  z-index: 10001; /* Higher than tooltip to ensure hover works */
+}
+
+/* Prevent the old dropdown content from showing */
+.dropdown-section:hover .dropdown-content,
+.dropdown-content.show {
+  display: none; /* Hide old dropdown content */
+  opacity: 0 ;
+  pointer-events: none;
+}
+
+
+
+/* Different positioning for expanded vs collapsed tooltips */
+.dropdown-tooltip.collapsed-state {
+  left: 100px;
+  margin-right: -100px;
+}
+
+.dropdown-tooltip.expanded-state {
+  left: 280px; /* Adjusted for expanded sidebar width */
+  margin-left: 10px;
+}
+
+
+
+
+/* Tooltip items background for ALL states */
+.personnel-records.dropdown-tooltip .tooltip-items {
+  background: rgba(156, 156, 156, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+
+
+}
+
+.morale-records.dropdown-tooltip .tooltip-items {
+  background: rgba(156, 156, 156, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+
+
+}
+
+.hr-records.dropdown-tooltip .tooltip-items {
+  background: rgba(156, 156, 156, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+
+  text-align: left;
+}
+
+/* Link styles for ALL states */
+.personnel-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(148, 0, 211, 0.9)
+  );
+  border-left: 4px solid rgb(255, 255, 255);
+  border-bottom: 4px solid rgb(255, 255, 255);
+  display: flex;
+  gap: 12px;
+
+  color: white;
+  transition: all 0.2s ease;
+
+  margin: 2px 4px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+  text-decoration: none;
   position: relative;
   overflow: hidden;
 }
 
-.navLink:hover {
-  background: var(--facebook-gray);
-  color: var(--text-primary);
-  transform: translateX(4px);
-  border-color: var(--facebook-border);
+.personnel-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  border-left: 4px solid rgb(242, 0, 234) !important;
+  border-bottom: 4px solid rgb(242, 0, 234) !important;
+  animation: pulseGlow 1.6s ease-in-out infinite;
 }
 
-.navLink.active {
-  background: var(--facebook-blue);
-  color: white !important;
-  border-color: var(--facebook-blue);
-  box-shadow: var(--shadow-sm);
-}
+/* Morale & Welfare Tooltip Items */
+.morale-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(135deg, #ff6384, #e6091b);
+  border-left: 4px solid #ffffff;
+  border-bottom: 4px solid #ffffff;
+  display: flex;
+  gap: 12px;
 
-.navLink.active .linkIcon {
   color: white;
+  transition: all 0.2s ease;
+
+
+  border-radius: 6px;
+  margin-bottom: 5px;
+  text-decoration: none;
 }
 
-.navLink.active::after {
-  content: '';
+.morale-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2) !important;
+  border-left: 4px solid #ff6384 !important;
+  border-bottom: 4px solid #ff6384 !important;
+  animation: heartbeat 1.4s ease-in-out infinite;
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* HR Management Tooltip Items */
+.hr-records.dropdown-tooltip .tooltip-items a {
+  background: linear-gradient(135deg, #0280ff, #0004fb);
+  border-left: 4px solid #ffffff;
+  border-bottom: 4px solid #ffffff;
+  display: flex;
+
+
+  color: white;
+  transition: all 0.2s ease;
+
+
+  border-radius: 6px;
+  margin-bottom: 5px;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.hr-records.dropdown-tooltip .tooltip-items a:hover {
+  background: linear-gradient(135deg, #0280ff, #0004fb) !important;
+  border-left: 4px solid #3b82f6 !important;
+  border-bottom: 4px solid #3b82f6 !important;
+}
+
+.hr-records.dropdown-tooltip .tooltip-items a::before {
+  content: "";
   position: absolute;
-  right: 12px;
-  width: 8px;
-  height: 8px;
-  background: white;
-  border-radius: 50%;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 255, 255, 0.803),
+    transparent
+  );
+  opacity: 0.3;
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  z-index: 0;
 }
 
-.linkIcon {
-  font-size: 1.2rem;
-  width: 24px;
-  text-align: center;
-  transition: var(--transition-normal);
+.hr-records.dropdown-tooltip .tooltip-items a:hover::before {
+  left: 230px;
 }
 
-.linkText {
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-/* Logout Link Special Styling */
-.logoutLink {
-  margin-top: auto;
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-  color: white !important;
-  border: none;
-}
-
-.logoutLink:hover {
-  background: linear-gradient(135deg, #ff5252, #d32f2f);
-  transform: translateY(-1px);
-}
-
-.logoutLink .linkIcon {
-  color: white;
-}
-
-/* ================================
-  THEME TOGGLE - FACEBOOK STYLE
-=============================== */
-.themeToggle {
+.hr-records.dropdown-tooltip .tooltip-items a:hover::after {
+  content: "";
   position: absolute;
-  bottom: 20px;
-  right: 20px;
-  z-index: 100;
+  inset: 0;
+  border-radius: 8px;
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+  animation: floatPulse 2s ease-in-out infinite alternate;
 }
 
-.themeToggleBtn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--facebook-blue);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
+/* Tooltip header styles for ALL states */
+.personnel-records .tooltip-header {
+  background: linear-gradient(
+    135deg,
+    rgba(184, 6, 212, 0.95),
+    rgba(46, 0, 211, 0.9)
+  ) !important;
+  padding: 12px 16px;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all var(--transition-normal);
-  box-shadow: var(--shadow-md);
+  gap: 8px;
+  color: white;
 }
 
-.themeToggleBtn:hover {
-  background: var(--facebook-blue-hover);
-  transform: rotate(15deg) scale(1.1);
+.morale-records .tooltip-header {
+  background: linear-gradient(135deg, #ff6384, #ff9aa2) !important;
+  padding: 12px 16px;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+.hr-records .tooltip-header {
+  background: linear-gradient(135deg, #0665ff, #2563eb) !important;
+  padding: 12px 16px;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+/* Different positioning for collapsed vs expanded states */
+.sidebar.collapsed .dropdown-tooltip {
+  left: 100px !important;
+  margin-right: -100px;
+}
+
+.sidebar:not(.collapsed) .dropdown-tooltip {
+  left: 280px !important; /* Adjusted for expanded sidebar width */
+  margin-left: 10px;
+}
+
+/* Ensure tooltip items are visible */
+.tooltip-items a span {
+  display: inline !important;
+  color: white !important;
+  position: relative;
+  z-index: 1;
 }
 
 /* ================================
-  ANIMATIONS
+  RESPONSIVE DESIGN - 768px AND BELOW
 =============================== */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+@media screen and (max-width: 768px) {
+  /* Hamburger menu adjustments */
+  .hamburger {
+    top: 10px;
+    left: 10px;
+    width: 32px;
+    height: 24px;
+    padding: 5px;
   }
-  to {
-    opacity: 1;
-  }
-}
 
-@keyframes slideIn {
-  from {
-    transform: translateX(-100%);
+  .hamburger .bar {
+    height: 3px;
   }
-  to {
-    transform: translateX(0);
-  }
-}
 
-@keyframes slideOut {
-  from {
-    transform: translateX(0);
+  .hamburger.active .top {
+    transform: translateY(8px) rotate(45deg);
   }
-  to {
-    transform: translateX(-100%);
+
+  .hamburger.active .bottom {
+    transform: translateY(-8px) rotate(-45deg);
   }
-}
 
-/* ================================
-  FACEBOOK ANDROID MOBILE RESPONSIVE
-=============================== */
-
-/* Mobile - 768px and below */
-@media (max-width: 768px) {
-  /* Mobile Sidebar as Drawer */
+  /* Sidebar adjustments for mobile */
   .sidebar {
-    width: 280px !important;
-    transform: translateX(-100%);
-    background: var(--facebook-card-bg);
-    box-shadow: var(--shadow-lg);
-    z-index: 1000;
+    width: 200% !important;
+    max-width: 300px;
+    left: 0% !important;
+    transition: left 0.4s ease, background 0.3s ease;
     padding-top: 60px;
+    box-shadow: 3px 0 15px rgba(0, 0, 0, 0.5);
   }
 
-  .sidebar.mobileOpen {
-    transform: translateX(0);
-    animation: slideIn 0.3s ease-out;
+  .sidebar.active {
+    left: 0 !important;
   }
 
-  .mobileCloseBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Facebook Mobile Header Style */
-  .logoLink {
-    background: none;
-    margin-bottom: 20px;
-    padding: 12px 16px;
-  }
-
-  .logoImage {
-    width: 44px;
-    height: 44px;
-    border-width: 3px;
-  }
-
-  .logoText {
-    font-size: 1.2rem;
-    font-weight: 800;
-  }
-
-  /* Facebook Mobile Navigation */
-  .navLink {
-    padding: 16px 20px;
-    margin: 4px 8px;
-    border-radius: 10px;
-    font-size: 1rem;
-    background: var(--facebook-card-bg);
-    border: 1px solid var(--facebook-border);
-  }
-
-  .navLink:hover {
-    background: var(--facebook-gray);
-    transform: translateX(2px);
-  }
-
-  .navLink.active {
-    background: var(--facebook-blue);
-    box-shadow: 0 2px 8px rgba(24, 119, 242, 0.3);
-  }
-
-  .linkIcon {
-    font-size: 1.3rem;
-    width: 28px;
-  }
-
-  .linkText {
-    font-size: 1rem;
-    font-weight: 600;
-  }
-
-  /* Theme Toggle Mobile */
-  .themeToggle {
+  /* When sidebar is active, add overlay */
+  .sidebar.active::before {
+    content: '';
     position: fixed;
-    bottom: 80px;
-    right: 20px;
-    z-index: 1001;
-  }
-
-  .themeToggleBtn {
-    width: 50px;
-    height: 50px;
-    font-size: 1.3rem;
-  }
-
-  /* Facebook Bottom Navigation (Optional) */
-  .bottomNav {
-    position: fixed;
-    bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
-    background: var(--facebook-card-bg);
-    display: flex;
-    justify-content: space-around;
-    padding: 12px 0;
-    border-top: 1px solid var(--facebook-border);
-    z-index: 998;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    pointer-events: none;
   }
 
-  .bottomNavItem {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    color: var(--facebook-dark-gray);
-    font-size: 0.8rem;
-    padding: 4px 12px;
-    border-radius: 8px;
-    transition: var(--transition-fast);
-  }
-
-  .bottomNavItem.active {
-    color: var(--facebook-blue);
-  }
-
-  .bottomNavItem i {
-    font-size: 1.3rem;
-    margin-bottom: 4px;
-  }
-}
-
-/* Small Mobile - 480px and below */
-@media (max-width: 480px) {
-  .sidebar {
+  /* Collapsed state adjustments for mobile */
+  .sidebar.collapsed {
     width: 100% !important;
-    max-width: 320px;
+    max-width: 80px;
+    left: -100%!important;
   }
 
-  .sidebarInner {
-    padding: 0 12px;
+  /* Theme toggle adjustments */
+  .sidebar .theme-toggle {
+    top: 10px;
+    right: 10px;
   }
 
-  .navLink {
-    padding: 18px 16px;
-    margin: 4px 4px;
+  .sidebar .theme-toggle button {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
   }
 
-  .logoLink {
-    padding: 12px;
+  /* Adjust main content for mobile */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 20px 15px !important;
+    padding-top: 70px !important;
   }
 
-  .logoImage {
-    width: 40px;
-    height: 40px;
+  .main-content.collapsed {
+    margin-left: 0 !important;
+    padding-left: 20px !important;
   }
 
-  /* Better touch targets */
-  .navLink,
-  .logoLink,
-  .mobileCloseBtn,
-  .themeToggleBtn {
-    min-height: 48px;
-    min-width: 48px;
+  /* Dropdown tooltips adjustments for mobile */
+  .dropdown-tooltip {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    width: 90% !important;
+    max-width: 320px !important;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 10010 !important;
   }
+
+  .sidebar.collapsed .dropdown-tooltip,
+  .sidebar:not(.collapsed) .dropdown-tooltip {
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+  }
+
+  /* Adjust tooltip items for mobile */
+  .tooltip-items a {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box;
+  }
+
+  .sidebar.collapsed .morale-records.dropdown-tooltip .tooltip-items a,
+  .sidebar.collapsed .hr-records.dropdown-tooltip .tooltip-items a {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* No-hover links adjustments */
+  .sidebar a.no-hover {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .sidebar.collapsed a.no-hover {
+    right: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Ensure sidebar inner scrolls properly on mobile */
+  .sidebar-inner {
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Adjust font sizes for better mobile readability */
+  .sidebar h2 {
+    font-size: 20px;
+  }
+
+  .sidebar a {
+    font-size: 14px;
+    padding: 10px 12px;
+    margin: 6px -1px;
+  }
+
+  /* Disable hover effects on touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    .sidebar a:hover {
+      transform: none !important;
+    }
+    
+    .dropdown-toggle:hover {
+      transform: none !important;
+    }
+    
+    .sidebar .theme-toggle button:hover {
+      transform: none !important;
+    }
+  }
+
 }
 
-/* Tablet - 769px to 1024px */
-@media (min-width: 769px) and (max-width: 1024px) {
+/* ================================
+  VERY SMALL DEVICES - 480px AND BELOW
+=============================== */
+@media screen and (max-width: 480px) {
   .sidebar {
-    width: 240px;
+    max-width: 280px;
   }
 
   .sidebar.collapsed {
-    width: 80px;
-  }
-}
-
-/* ================================
-  DARK MODE (FACEBOOK DARK THEME)
-=============================== */
-@media (prefers-color-scheme: dark) {
-  .sidebar {
-    background: linear-gradient(135deg, #242526 0%, #18191a 100%);
-    color: #e4e6eb;
+    max-width: 70px;
   }
 
-  .logoLink {
-    background: rgba(255, 255, 255, 0.05);
+  .hamburger {
+    top: 8px;
+    left: 8px;
+    width: 30px;
+    height: 22px;
   }
 
-  .logoLink:hover {
-    background: rgba(255, 255, 255, 0.1);
+  .sidebar .theme-toggle button {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
   }
 
-  .logoText {
-    color: #e4e6eb;
+  .dropdown-tooltip {
+    width: 95% !important;
+    max-width: 280px !important;
   }
 
-  .navLink {
-    background: rgba(255, 255, 255, 0.05);
-    color: #b0b3b8;
-    border-color: #3a3b3c;
+  .tooltip-header {
+    font-size: 13px;
+    padding: 10px 14px;
   }
 
-  .navLink:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #e4e6eb;
+  .tooltip-items a {
+    padding: 8px 12px;
+    font-size: 13px;
   }
-
-  .navLink.active {
-    background: var(--facebook-blue);
-    color: white !important;
-    border-color: var(--facebook-blue);
-  }
-
-  /* Mobile Dark Mode */
-  @media (max-width: 768px) {
-    .sidebar {
-      background: #242526;
-    }
-
-    .navLink {
-      background: #3a3b3c;
-      border-color: #3a3b3c;
-    }
-
-    .navLink:hover {
-      background: #4e4f50;
-    }
-
-    .bottomNav {
-      background: #242526;
-      border-top-color: #3a3b3c;
-    }
-
-    .bottomNavItem {
-      color: #b0b3b8;
-    }
-
-    .bottomNavItem.active {
-      color: var(--facebook-blue);
-    }
-  }
-}
-
-/* ================================
-  ACCESSIBILITY
-=============================== */
-.navLink:focus,
-.logoLink:focus,
-.themeToggleBtn:focus,
-.mobileCloseBtn:focus {
-  outline: 2px solid var(--facebook-blue);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ================================
-  SAFE AREA INSETS FOR NOTCHED PHONES
-=============================== */
-@supports (padding: max(0px)) {
-  .sidebar {
-    padding-top: max(20px, env(safe-area-inset-top));
-    padding-bottom: max(20px, env(safe-area-inset-bottom));
-  }
-
-  @media (max-width: 768px) {
-    .bottomNav {
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
-  }
-}
-
-/* ================================
-  PRINT STYLES
-=============================== */
-@media print {
-  .sidebar {
-    display: none;
-  }
-}
-
-/* ================================
-  UTILITY CLASSES
-=============================== */
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }

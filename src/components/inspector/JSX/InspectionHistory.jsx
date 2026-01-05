@@ -5,7 +5,7 @@ import { Title, Meta } from "react-head";
 import InspectorSidebar from "../../InspectorSidebar";
 import Hamburger from "../../Hamburger";
 import { useSidebar } from "../../SidebarContext";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "../../../lib/supabaseClient.js";
 import {
   Search,
   Filter,
@@ -168,57 +168,118 @@ const InspectionHistory = () => {
     }
   };
 
-const fetchRealTimeInspections = async () => {
-  try {
-    console.log("Fetching real-time inspection data...");
+  const fetchRealTimeInspections = async () => {
+    try {
+      console.log("Fetching real-time inspection data...");
 
-    // Since there are foreign key relationship issues, let's fetch data separately
-    // and combine it manually
+      // Since there are foreign key relationship issues, let's fetch data separately
+      // and combine it manually
 
-    // 1. Fetch inspections
-    const { data: inspectionData, error: inspectionError } = await supabase
-      .from("inspections")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (inspectionError) throw inspectionError;
-
-    // 2. Fetch equipment data for inspections
-    const equipmentIds = [
-      ...new Set(inspectionData?.map((i) => i.equipment_id).filter(Boolean)),
-    ];
-    let equipmentMap = {};
-
-    if (equipmentIds.length > 0) {
-      const { data: equipmentData, error: equipmentError } = await supabase
-        .from("inventory")
+      // 1. Fetch inspections
+      const { data: inspectionData, error: inspectionError } = await supabase
+        .from("inspections")
         .select("*")
-        .in("id", equipmentIds);
+        .order("created_at", { ascending: false });
 
-      if (!equipmentError) {
-        equipmentData?.forEach((item) => {
-          equipmentMap[item.id] = item;
-        });
+      if (inspectionError) throw inspectionError;
+
+      // 2. Fetch equipment data for inspections
+      const equipmentIds = [
+        ...new Set(inspectionData?.map((i) => i.equipment_id).filter(Boolean)),
+      ];
+      let equipmentMap = {};
+
+      if (equipmentIds.length > 0) {
+        const { data: equipmentData, error: equipmentError } = await supabase
+          .from("inventory")
+          .select("*")
+          .in("id", equipmentIds);
+
+        if (!equipmentError) {
+          equipmentData?.forEach((item) => {
+            equipmentMap[item.id] = item;
+          });
+        }
       }
-    }
 
-    // 3. Fetch personnel data for inspectors
-    const inspectorIds = [
-      ...new Set(inspectionData?.map((i) => i.inspector_id).filter(Boolean)),
-    ];
-    let inspectorMap = {};
+      // 3. Fetch personnel data for inspectors
+      const inspectorIds = [
+        ...new Set(inspectionData?.map((i) => i.inspector_id).filter(Boolean)),
+      ];
+      let inspectorMap = {};
 
-    if (inspectorIds.length > 0) {
-      const { data: personnelData, error: personnelError } = await supabase
-        .from("personnel")
-        .select(
-          "id, first_name, last_name, middle_name, suffix, badge_number, rank"
-        )
-        .in("id", inspectorIds);
+      if (inspectorIds.length > 0) {
+        const { data: personnelData, error: personnelError } = await supabase
+          .from("personnel")
+          .select(
+            "id, first_name, last_name, middle_name, suffix, badge_number, rank"
+          )
+          .in("id", inspectorIds);
 
-      if (!personnelError) {
-        personnelData?.forEach((person) => {
-          // Build full name
+        if (!personnelError) {
+          personnelData?.forEach((person) => {
+            // Build full name
+            const firstName = person.first_name || "";
+            const middleName = person.middle_name || "";
+            const lastName = person.last_name || "";
+            const suffix = person.suffix || "";
+
+            let fullName = `${firstName} ${middleName} ${lastName}`.trim();
+            if (suffix) {
+              fullName = `${fullName} ${suffix}`;
+            }
+
+            // Format: LastName, FirstName MiddleInitial.
+            let formattedName = `${lastName}, ${firstName}`;
+            if (middleName) {
+              formattedName = `${formattedName} ${middleName.charAt(0)}.`;
+            }
+            if (suffix) {
+              formattedName = `${formattedName} ${suffix}`;
+            }
+
+            inspectorMap[person.id] = {
+              ...person,
+              full_name: fullName,
+              formatted_name: formattedName,
+            };
+          });
+        }
+      }
+
+      // 4. Fetch clearance requests
+      const clearanceRequestIds = [
+        ...new Set(
+          inspectionData?.map((i) => i.clearance_request_id).filter(Boolean)
+        ),
+      ];
+      let clearanceMap = {};
+
+      if (clearanceRequestIds.length > 0) {
+        const { data: clearanceData, error: clearanceError } = await supabase
+          .from("clearance_requests")
+          .select("*")
+          .in("id", clearanceRequestIds);
+
+        if (!clearanceError) {
+          clearanceData?.forEach((req) => {
+            clearanceMap[req.id] = req;
+          });
+        }
+      }
+
+      // 5. Fetch ALL personnel to map assigned personnel
+      const { data: allPersonnelData, error: allPersonnelError } =
+        await supabase
+          .from("personnel")
+          .select(
+            "id, first_name, last_name, middle_name, suffix, badge_number, rank"
+          );
+
+      let personnelMap = {};
+      if (!allPersonnelError && allPersonnelData) {
+        allPersonnelData.forEach((person) => {
+          // Build full name for each personnel
           const firstName = person.first_name || "";
           const middleName = person.middle_name || "";
           const lastName = person.last_name || "";
@@ -238,221 +299,164 @@ const fetchRealTimeInspections = async () => {
             formattedName = `${formattedName} ${suffix}`;
           }
 
-          inspectorMap[person.id] = {
+          personnelMap[person.id] = {
             ...person,
             full_name: fullName,
             formatted_name: formattedName,
           };
         });
       }
-    }
 
-    // 4. Fetch clearance requests
-    const clearanceRequestIds = [
-      ...new Set(
-        inspectionData?.map((i) => i.clearance_request_id).filter(Boolean)
-      ),
-    ];
-    let clearanceMap = {};
+      // Transform inspection data
+      const transformedInspections = (inspectionData || []).map(
+        (inspection) => {
+          const equipment = equipmentMap[inspection.equipment_id];
+          const inspector = inspectorMap[inspection.inspector_id];
+          const clearanceRequest =
+            clearanceMap[inspection.clearance_request_id];
 
-    if (clearanceRequestIds.length > 0) {
-      const { data: clearanceData, error: clearanceError } = await supabase
-        .from("clearance_requests")
-        .select("*")
-        .in("id", clearanceRequestIds);
+          // Get inspector name
+          let inspectorName = inspection.inspector_name;
+          if (!inspectorName && inspector) {
+            inspectorName =
+              inspector.formatted_name ||
+              inspector.full_name ||
+              `Inspector ${inspector.id.substring(0, 8)}`;
+          }
 
-      if (!clearanceError) {
-        clearanceData?.forEach((req) => {
-          clearanceMap[req.id] = req;
-        });
-      }
-    }
+          // Get assigned personnel info from equipment
+          let assignedPersonnel = null;
+          let personnelName = "Unassigned";
+          let formattedPersonnelName = "Unassigned";
 
-    // 5. Fetch ALL personnel to map assigned personnel
-    const { data: allPersonnelData, error: allPersonnelError } = await supabase
-      .from("personnel")
-      .select(
-        "id, first_name, last_name, middle_name, suffix, badge_number, rank"
+          if (equipment?.assigned_personnel_id) {
+            assignedPersonnel = personnelMap[equipment.assigned_personnel_id];
+            if (assignedPersonnel) {
+              personnelName = assignedPersonnel.full_name;
+              formattedPersonnelName = assignedPersonnel.formatted_name;
+            } else {
+              // If personnel not found in map, show generic
+              personnelName = `Personnel ${equipment.assigned_personnel_id.substring(
+                0,
+                8
+              )}`;
+              formattedPersonnelName = personnelName;
+            }
+          }
+
+          return {
+            id: inspection.id,
+            inspection_date:
+              inspection.inspection_date || inspection.schedule_inspection_date,
+            equipment_id: inspection.equipment_id,
+            item_name: equipment?.item_name,
+            item_code: equipment?.item_code,
+            inspector_name: inspectorName,
+            assigned_to: inspection.assigned_to || equipment?.assigned_to,
+            assigned_personnel_id: equipment?.assigned_personnel_id,
+            personnel_name: personnelName,
+            formatted_personnel_name: formattedPersonnelName,
+            personnel_rank: assignedPersonnel?.rank,
+            personnel_badge:
+              assignedPersonnel?.badge_number || equipment?.badge_number,
+            clearance_type: clearanceRequest?.type,
+            clearance_request_id: inspection.clearance_request_id,
+            inspection_type: inspection.clearance_request_id
+              ? "CLEARANCE"
+              : "ROUTINE",
+            status: inspection.status,
+            findings: inspection.findings,
+            recommendations: inspection.recommendations,
+            notes: inspection.notes,
+            equipment_status: equipment?.status,
+            is_unassigned:
+              inspection.assigned_to === "Unassigned" ||
+              !equipment?.assigned_personnel_id ||
+              equipment.assigned_to === "Unassigned",
+            has_clearance: !!inspection.clearance_request_id,
+            record_type: "INSPECTION",
+            source: "inspections",
+            created_at: inspection.created_at,
+          };
+        }
       );
 
-    let personnelMap = {};
-    if (!allPersonnelError && allPersonnelData) {
-      allPersonnelData.forEach((person) => {
-        // Build full name for each personnel
-        const firstName = person.first_name || "";
-        const middleName = person.middle_name || "";
-        const lastName = person.last_name || "";
-        const suffix = person.suffix || "";
-
-        let fullName = `${firstName} ${middleName} ${lastName}`.trim();
-        if (suffix) {
-          fullName = `${fullName} ${suffix}`;
-        }
-
-        // Format: LastName, FirstName MiddleInitial.
-        let formattedName = `${lastName}, ${firstName}`;
-        if (middleName) {
-          formattedName = `${formattedName} ${middleName.charAt(0)}.`;
-        }
-        if (suffix) {
-          formattedName = `${formattedName} ${suffix}`;
-        }
-
-        personnelMap[person.id] = {
-          ...person,
-          full_name: fullName,
-          formatted_name: formattedName,
-        };
-      });
-    }
-
-    // Transform inspection data
-    const transformedInspections = (inspectionData || []).map((inspection) => {
-      const equipment = equipmentMap[inspection.equipment_id];
-      const inspector = inspectorMap[inspection.inspector_id];
-      const clearanceRequest = clearanceMap[inspection.clearance_request_id];
-
-      // Get inspector name
-      let inspectorName = inspection.inspector_name;
-      if (!inspectorName && inspector) {
-        inspectorName =
-          inspector.formatted_name ||
-          inspector.full_name ||
-          `Inspector ${inspector.id.substring(0, 8)}`;
-      }
-
-      // Get assigned personnel info from equipment
-      let assignedPersonnel = null;
-      let personnelName = "Unassigned";
-      let formattedPersonnelName = "Unassigned";
-
-      if (equipment?.assigned_personnel_id) {
-        assignedPersonnel = personnelMap[equipment.assigned_personnel_id];
-        if (assignedPersonnel) {
-          personnelName = assignedPersonnel.full_name;
-          formattedPersonnelName = assignedPersonnel.formatted_name;
-        } else {
-          // If personnel not found in map, show generic
-          personnelName = `Personnel ${equipment.assigned_personnel_id.substring(
-            0,
-            8
-          )}`;
-          formattedPersonnelName = personnelName;
-        }
-      }
-
-      return {
-        id: inspection.id,
-        inspection_date:
-          inspection.inspection_date || inspection.schedule_inspection_date,
-        equipment_id: inspection.equipment_id,
-        item_name: equipment?.item_name,
-        item_code: equipment?.item_code,
-        inspector_name: inspectorName,
-        assigned_to: inspection.assigned_to || equipment?.assigned_to,
-        assigned_personnel_id: equipment?.assigned_personnel_id,
-        personnel_name: personnelName,
-        formatted_personnel_name: formattedPersonnelName,
-        personnel_rank: assignedPersonnel?.rank,
-        personnel_badge:
-          assignedPersonnel?.badge_number || equipment?.badge_number,
-        clearance_type: clearanceRequest?.type,
-        clearance_request_id: inspection.clearance_request_id,
-        inspection_type: inspection.clearance_request_id
-          ? "CLEARANCE"
-          : "ROUTINE",
-        status: inspection.status,
-        findings: inspection.findings,
-        recommendations: inspection.recommendations,
-        notes: inspection.notes,
-        equipment_status: equipment?.status,
-        is_unassigned:
-          inspection.assigned_to === "Unassigned" ||
-          !equipment?.assigned_personnel_id ||
-          equipment.assigned_to === "Unassigned",
-        has_clearance: !!inspection.clearance_request_id,
-        record_type: "INSPECTION",
-        source: "inspections",
-        created_at: inspection.created_at,
-      };
-    });
-
-    // 6. Fetch clearance_inventory records
-    const { data: clearanceData, error: clearanceError } = await supabase
-      .from("clearance_inventory")
-      .select(
-        `
+      // 6. Fetch clearance_inventory records
+      const { data: clearanceData, error: clearanceError } = await supabase
+        .from("clearance_inventory")
+        .select(
+          `
         *,
         inventory(*),
         clearance_request:clearance_requests(*)
       `
-      )
-      .not("inspection_date", "is", null)
-      .order("inspection_date", { ascending: false });
+        )
+        .not("inspection_date", "is", null)
+        .order("inspection_date", { ascending: false });
 
-    if (clearanceError) {
-      console.error("Error fetching clearance inventory:", clearanceError);
-    }
-
-    // Transform clearance inventory data
-    const transformedClearances = (clearanceData || []).map((ci) => {
-      // Get personnel name from personnel_id using personnelMap
-      let personnelName = "Unassigned";
-      let formattedPersonnelName = "Unassigned";
-
-      if (ci.personnel_id && personnelMap[ci.personnel_id]) {
-        const personnel = personnelMap[ci.personnel_id];
-        personnelName = personnel.full_name;
-        formattedPersonnelName = personnel.formatted_name;
-      } else if (ci.personnel_id) {
-        personnelName = `Personnel ${ci.personnel_id.substring(0, 8)}`;
-        formattedPersonnelName = personnelName;
+      if (clearanceError) {
+        console.error("Error fetching clearance inventory:", clearanceError);
       }
 
-      return {
-        id: ci.id,
-        inspection_date: ci.inspection_date,
-        equipment_id: ci.inventory_id,
-        item_name: ci.inventory?.item_name,
-        item_code: ci.inventory?.item_code,
-        inspector_name: ci.inspector_name || "Unknown Inspector",
-        assigned_to: ci.inventory?.assigned_to,
-        assigned_personnel_id: ci.personnel_id,
-        personnel_name: personnelName,
-        formatted_personnel_name: formattedPersonnelName,
-        personnel_rank: personnelMap[ci.personnel_id]?.rank,
-        personnel_badge:
-          personnelMap[ci.personnel_id]?.badge_number ||
-          ci.inventory?.badge_number,
-        clearance_type: ci.clearance_request?.type,
-        clearance_request_id: ci.clearance_request_id,
-        inspection_type: "CLEARANCE",
-        status: ci.status,
-        findings: ci.findings,
-        notes: ci.remarks,
-        equipment_status: ci.inventory?.status,
-        is_unassigned: false,
-        has_clearance: true,
-        record_type: "CLEARANCE",
-        source: "clearance_inventory",
-        created_at: ci.created_at,
-      };
-    });
+      // Transform clearance inventory data
+      const transformedClearances = (clearanceData || []).map((ci) => {
+        // Get personnel name from personnel_id using personnelMap
+        let personnelName = "Unassigned";
+        let formattedPersonnelName = "Unassigned";
 
-    // Combine and sort by date
-    const combinedData = [...transformedInspections, ...transformedClearances]
-      .filter((item) => item.inspection_date) // Filter out items without dates
-      .sort(
-        (a, b) => new Date(b.inspection_date) - new Date(a.inspection_date)
-      );
+        if (ci.personnel_id && personnelMap[ci.personnel_id]) {
+          const personnel = personnelMap[ci.personnel_id];
+          personnelName = personnel.full_name;
+          formattedPersonnelName = personnel.formatted_name;
+        } else if (ci.personnel_id) {
+          personnelName = `Personnel ${ci.personnel_id.substring(0, 8)}`;
+          formattedPersonnelName = personnelName;
+        }
 
-    console.log(`Total records loaded: ${combinedData.length}`);
-    setInspections(combinedData);
-  } catch (error) {
-    console.error("Error fetching real-time inspections:", error);
-    setError(`Error fetching inspections: ${error.message}`);
-  }
-};
+        return {
+          id: ci.id,
+          inspection_date: ci.inspection_date,
+          equipment_id: ci.inventory_id,
+          item_name: ci.inventory?.item_name,
+          item_code: ci.inventory?.item_code,
+          inspector_name: ci.inspector_name || "Unknown Inspector",
+          assigned_to: ci.inventory?.assigned_to,
+          assigned_personnel_id: ci.personnel_id,
+          personnel_name: personnelName,
+          formatted_personnel_name: formattedPersonnelName,
+          personnel_rank: personnelMap[ci.personnel_id]?.rank,
+          personnel_badge:
+            personnelMap[ci.personnel_id]?.badge_number ||
+            ci.inventory?.badge_number,
+          clearance_type: ci.clearance_request?.type,
+          clearance_request_id: ci.clearance_request_id,
+          inspection_type: "CLEARANCE",
+          status: ci.status,
+          findings: ci.findings,
+          notes: ci.remarks,
+          equipment_status: ci.inventory?.status,
+          is_unassigned: false,
+          has_clearance: true,
+          record_type: "CLEARANCE",
+          source: "clearance_inventory",
+          created_at: ci.created_at,
+        };
+      });
+
+      // Combine and sort by date
+      const combinedData = [...transformedInspections, ...transformedClearances]
+        .filter((item) => item.inspection_date) // Filter out items without dates
+        .sort(
+          (a, b) => new Date(b.inspection_date) - new Date(a.inspection_date)
+        );
+
+      console.log(`Total records loaded: ${combinedData.length}`);
+      setInspections(combinedData);
+    } catch (error) {
+      console.error("Error fetching real-time inspections:", error);
+      setError(`Error fetching inspections: ${error.message}`);
+    }
+  };
   // Handle row selection
   const toggleRowSelection = (id) => {
     const newSelected = new Set(selectedRows);
@@ -784,78 +788,78 @@ const fetchRealTimeInspections = async () => {
     }
   };
 
-const exportToCSV = async () => {
-  setExportLoading(true);
-  try {
-    const data = filteredInspections;
+  const exportToCSV = async () => {
+    setExportLoading(true);
+    try {
+      const data = filteredInspections;
 
-    if (data.length === 0) {
-      alert("No data to export!");
-      return;
+      if (data.length === 0) {
+        alert("No data to export!");
+        return;
+      }
+
+      const headers = [
+        "Inspection Date",
+        "Item Code",
+        "Item Name",
+        "Personnel Name",
+        "Rank",
+        "Badge Number",
+        "Inspector",
+        "Inspection Type",
+        "Clearance Type",
+        "Status",
+        "Findings",
+        "Equipment Status",
+        "Is Unassigned",
+      ];
+
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+      csvContent += headers.join(",") + "\n";
+
+      data.forEach((item) => {
+        const row = [
+          formatDate(item.inspection_date).replace(/"/g, '""'),
+          item.item_code?.replace(/"/g, '""') || "",
+          item.item_name?.replace(/"/g, '""') || "",
+          item.formatted_personnel_name?.replace(/"/g, '""') ||
+            item.personnel_name?.replace(/"/g, '""') ||
+            "Unassigned",
+          item.personnel_rank?.replace(/"/g, '""') || "",
+          item.personnel_badge?.replace(/"/g, '""') || "",
+          item.inspector_name?.replace(/"/g, '""') || "",
+          item.inspection_type?.replace(/"/g, '""') || "",
+          item.clearance_type?.replace(/"/g, '""') || "",
+          item.status?.replace(/"/g, '""') || "",
+          item.findings?.replace(/"/g, '""') || "",
+          item.equipment_status?.replace(/"/g, '""') || "",
+          item.is_unassigned ? "Yes" : "No",
+        ]
+          .map((field) => `"${field}"`)
+          .join(",");
+
+        csvContent += row + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `inspection_history_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      alert(`Exported ${data.length} records to CSV successfully!`);
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      alert(`Failed to export data: ${error.message}`);
+    } finally {
+      setExportLoading(false);
     }
-
-    const headers = [
-      "Inspection Date",
-      "Item Code",
-      "Item Name",
-      "Personnel Name",
-      "Rank",
-      "Badge Number",
-      "Inspector",
-      "Inspection Type",
-      "Clearance Type",
-      "Status",
-      "Findings",
-      "Equipment Status",
-      "Is Unassigned",
-    ];
-
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += headers.join(",") + "\n";
-
-    data.forEach((item) => {
-      const row = [
-        formatDate(item.inspection_date).replace(/"/g, '""'),
-        item.item_code?.replace(/"/g, '""') || "",
-        item.item_name?.replace(/"/g, '""') || "",
-        item.formatted_personnel_name?.replace(/"/g, '""') ||
-          item.personnel_name?.replace(/"/g, '""') ||
-          "Unassigned",
-        item.personnel_rank?.replace(/"/g, '""') || "",
-        item.personnel_badge?.replace(/"/g, '""') || "",
-        item.inspector_name?.replace(/"/g, '""') || "",
-        item.inspection_type?.replace(/"/g, '""') || "",
-        item.clearance_type?.replace(/"/g, '""') || "",
-        item.status?.replace(/"/g, '""') || "",
-        item.findings?.replace(/"/g, '""') || "",
-        item.equipment_status?.replace(/"/g, '""') || "",
-        item.is_unassigned ? "Yes" : "No",
-      ]
-        .map((field) => `"${field}"`)
-        .join(",");
-
-      csvContent += row + "\n";
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `inspection_history_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    alert(`Exported ${data.length} records to CSV successfully!`);
-  } catch (error) {
-    console.error("Error exporting data:", error);
-    alert(`Failed to export data: ${error.message}`);
-  } finally {
-    setExportLoading(false);
-  }
-};
+  };
 
   const clearFilters = () => {
     setSearchTerm("");

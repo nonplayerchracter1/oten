@@ -1,11 +1,11 @@
-// InspectorDashboard.jsx - CORRECTED VERSION
+// InspectorDashboard.jsx - FIXED VERSION
 import React, { useState, useEffect } from "react";
 import styles from "../styles/InspectorDashboard.module.css";
 import { Title, Meta } from "react-head";
 import InspectorSidebar from "../../InspectorSidebar";
 import Hamburger from "../../Hamburger";
 import { useSidebar } from "../../SidebarContext";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "../../../lib/supabaseClient.js";
 import {
   Calendar,
   Wrench,
@@ -507,8 +507,13 @@ const InspectorDashboard = () => {
     }).format(amount || 0);
   };
 
-  const handleNavigate = (path) => {
-    navigate(path);
+  const handleNavigate = (path, params = {}) => {
+    let queryString = '';
+    if (Object.keys(params).length > 0) {
+      const queryParams = new URLSearchParams(params).toString();
+      queryString = `?${queryParams}`;
+    }
+    navigate(`${path}${queryString}`);
   };
 
   const handleViewInspection = (id) => {
@@ -707,7 +712,10 @@ const InspectorDashboard = () => {
               </h3>
               <button
                 className={styles.viewAllBtn}
-                onClick={() => handleNavigate("/inspectorEquipmentInspection")}
+                onClick={() => handleNavigate("/inspector/equipment", { 
+                  view: 'upcoming', 
+                  days: '3' 
+                })}
               >
                 View All
               </button>
@@ -779,7 +787,10 @@ const InspectorDashboard = () => {
               </h3>
               <button
                 className={styles.viewAllBtn}
-                onClick={() => handleNavigate("/inspectorInventoryControl")}
+                onClick={() => handleNavigate("/inspector/inventory", { 
+                  view: 'urgent', 
+                  status: 'damaged,lost,maintenance' 
+                })}
               >
                 View All
               </button>
@@ -961,7 +972,7 @@ const InspectorDashboard = () => {
             </h3>
             <button
               className={styles.viewAllBtn}
-              onClick={() => handleNavigate("/inspectionHistory")}
+              onClick={() => handleNavigate("/inspector/history")}
             >
               View All
             </button>

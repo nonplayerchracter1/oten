@@ -1076,6 +1076,13 @@ const EmployeeLeaveRequest = () => {
 
               <div className={styles.formButtons}>
                 <button
+                  type="submit"
+                  className={styles.btnPrimary}
+                  disabled={submitLoading}
+                >
+                  {submitLoading ? "Submitting..." : "Submit Request"}
+                </button>
+                <button
                   type="button"
                   onClick={handleReset}
                   className={styles.btnSecondary}
@@ -1083,13 +1090,7 @@ const EmployeeLeaveRequest = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className={styles.btnPrimary}
-                  disabled={submitLoading}
-                >
-                  {submitLoading ? "Submitting..." : "Submit Request"}
-                </button>
+                
               </div>
             </form>
           </div>

@@ -661,7 +661,7 @@ export default function InspectionControl() {
                     style={{ textAlign: "center", padding: "40px" }}
                   >
                     <div style={{ fontSize: "48px", marginBottom: "16px" }}>
-                       <span className={styles.animatedEmoji}>🔍</span> 
+                      <span className={styles.animatedEmoji}>🔍</span>
                     </div>
                     <h3
                       style={{

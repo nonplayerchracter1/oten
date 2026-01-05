@@ -1,7 +1,7 @@
-// components/EmployeeDashboard.jsx - COMPLETE with enhanced clearance stats panel
+// components/EmployeeDashboard.jsx - UPDATED with proper columns and mobile responsiveness
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../AuthContext.jsx";
-//import { openDB, STORE_PERSONNEL, STORE_INVENTORY, STORE_CLEARANCE } from "./db";
+//import {  openDB, STORE_PERSONNEL, STORE_INVENTORY, STORE_CLEARANCE,} from "./db";
 import EmployeeSidebar from "../../EmployeeSidebar.jsx";
 import Hamburger from "../../Hamburger.jsx";
 import styles from "../styles/EmployeeDashboard.module.css";
@@ -21,59 +21,6 @@ const EmployeeDashboard = () => {
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [selectedBarcode, setSelectedBarcode] = useState(null);
   const [clearanceLoading, setClearanceLoading] = useState(false);
-
-  // Add rank options array from your PersonnelRegister - UPDATED
-  const rankOptions = [
-    {
-      rank: "FO1",
-      name: "Fire Officer 1",
-      image: `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/storage/v1/object/public/rank_images/FO1.png`,
-    },
-    {
-      rank: "FO2",
-      name: "Fire Officer 2",
-      image: `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/storage/v1/object/public/rank_images/FO2.png`,
-    },
-    {
-      rank: "FO3",
-      name: "Fire Officer 3",
-      image: `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/storage/v1/object/public/rank_images/FO3.png`,
-    },
-    {
-      rank: "SFO1",
-      name: "Senior Fire Officer 1",
-      image: `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/storage/v1/object/public/rank_images/SFO1.png`,
-    },
-    {
-      rank: "SFO2",
-      name: "Senior Fire Officer 2",
-      image: `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/storage/v1/object/public/rank_images/SFO2.png`,
-    },
-    {
-      rank: "SFO3",
-      name: "Senior Fire Officer 3",
-      image: `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/storage/v1/object/public/rank_images/SFO3.png`,
-    },
-    {
-      rank: "SFO4",
-      name: "Senior Fire Officer 4",
-      image: `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/storage/v1/object/public/rank_images/SFO4.png`,
-    },
-  ];
 
   useEffect(() => {
     if (user && user.role === "employee") {
@@ -97,7 +44,7 @@ const EmployeeDashboard = () => {
 
         if (error) {
           console.error("Error loading employee from Supabase:", error);
-          // await loadEmployeeFromIndexedDB(); // Commented out for now
+          await loadEmployeeFromIndexedDB();
         } else if (employeeData) {
           setEmployee(employeeData);
 
@@ -107,14 +54,36 @@ const EmployeeDashboard = () => {
             loadClearanceRequests(employeeData),
           ]);
         } else {
-          // await loadEmployeeFromIndexedDB(); // Commented out for now
+          await loadEmployeeFromIndexedDB();
         }
       }
     } catch (error) {
       console.error("Error loading employee data:", error);
-      // await loadEmployeeFromIndexedDB(); // Commented out for now
+      await loadEmployeeFromIndexedDB();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadEmployeeFromIndexedDB = async () => {
+    try {
+      const db = await openDB();
+      const personnelTx = db.transaction(STORE_PERSONNEL, "readonly");
+      const personnelStore = personnelTx.objectStore(STORE_PERSONNEL);
+      const personnelReq = personnelStore.getAll();
+
+      personnelReq.onsuccess = () => {
+        const personnelList = personnelReq.result || [];
+        const emp = personnelList.find((p) => p.username === user.username);
+
+        if (emp) {
+          setEmployee(emp);
+          loadAssignedEquipmentFromDB(emp);
+          loadClearanceRequestsFromDB(emp);
+        }
+      };
+    } catch (error) {
+      console.error("Error loading from IndexedDB:", error);
     }
   };
 
@@ -143,11 +112,44 @@ const EmployeeDashboard = () => {
         console.log("Assigned items:", assignedItems);
         setAssignedEquipment(assignedItems);
       } else {
-        // await loadAssignedEquipmentFromDB(emp); // Commented out for now
+        await loadAssignedEquipmentFromDB(emp);
       }
     } catch (error) {
       console.error("Error loading assigned equipment:", error);
-      // await loadAssignedEquipmentFromDB(emp); // Commented out for now
+      await loadAssignedEquipmentFromDB(emp);
+    }
+  };
+
+  const loadAssignedEquipmentFromDB = async (emp) => {
+    try {
+      const db = await openDB();
+      const tx = db.transaction(STORE_INVENTORY, "readonly");
+      const store = tx.objectStore(STORE_INVENTORY);
+      const req = store.getAll();
+
+      req.onsuccess = () => {
+        const inventory = req.result || [];
+        const fullName = `${emp.first_name} ${emp.last_name}`
+          .toLowerCase()
+          .trim();
+
+        const assignedItems = inventory.filter((item) => {
+          if (!item.assigned_to && !item.assignedTo) return false;
+
+          const assignedName = (item.assigned_to || item.assignedTo || "")
+            .toLowerCase()
+            .trim();
+          return (
+            assignedName.includes(fullName) ||
+            assignedName.includes(emp.first_name.toLowerCase()) ||
+            assignedName.includes(emp.last_name.toLowerCase())
+          );
+        });
+
+        setAssignedEquipment(assignedItems);
+      };
+    } catch (error) {
+      console.error("Error loading assigned equipment from DB:", error);
     }
   };
 
@@ -174,7 +176,7 @@ const EmployeeDashboard = () => {
 
       if (error) {
         console.error("Error loading clearance requests:", error);
-        // await loadClearanceRequestsFromDB(emp); // Commented out for now
+        await loadClearanceRequestsFromDB(emp);
       } else if (clearanceData) {
         console.log("Clearance data loaded:", clearanceData);
 
@@ -207,13 +209,37 @@ const EmployeeDashboard = () => {
 
         setClearanceRequests(formattedClearances);
       } else {
-        // await loadClearanceRequestsFromDB(emp); // Commented out for now
+        await loadClearanceRequestsFromDB(emp);
       }
     } catch (error) {
       console.error("Error loading clearance requests:", error);
-      // await loadClearanceRequestsFromDB(emp); // Commented out for now
+      await loadClearanceRequestsFromDB(emp);
     } finally {
       setClearanceLoading(false);
+    }
+  };
+
+  const loadClearanceRequestsFromDB = async (emp) => {
+    try {
+      const db = await openDB();
+      const tx = db.transaction(STORE_CLEARANCE, "readonly");
+      const store = tx.objectStore(STORE_CLEARANCE);
+      const req = store.getAll();
+
+      req.onsuccess = () => {
+        const clearanceList = req.result || [];
+        const fullName = `${emp.first_name} ${emp.middle_name || ""} ${
+          emp.last_name
+        }`
+          .replace(/\s+/g, " ")
+          .trim();
+        const userClearances = clearanceList.filter(
+          (c) => c.employee === fullName
+        );
+        setClearanceRequests(userClearances);
+      };
+    } catch (error) {
+      console.error("Error loading clearance requests from DB:", error);
     }
   };
 
@@ -236,14 +262,6 @@ const EmployeeDashboard = () => {
     }
 
     return "/default-profile.png";
-  };
-
-  // Add helper function to get rank image
-  const getRankImage = (rankCode) => {
-    if (!rankCode) return null;
-    
-    const rank = rankOptions.find(r => r.rank === rankCode);
-    return rank ? rank.image : null;
   };
 
   // Generate barcode image for display
@@ -411,55 +429,19 @@ const EmployeeDashboard = () => {
     alert("Clearance Details:\n\n" + details);
   };
 
+  // Download clearance document (placeholder)
+  const downloadClearanceDocument = (clearance) => {
+    alert(
+      `Downloading clearance document for ${clearance.type} (ID: ${clearance.id})\n\nThis feature will generate a PDF document.`
+    );
+  };
+
   // Refresh clearance data
   const refreshClearanceData = async () => {
     if (employee) {
       setClearanceLoading(true);
       await loadClearanceRequests(employee);
     }
-  };
-
-  // Helper function to calculate average processing time (placeholder)
-  const calculateAverageProcessingTime = (requests) => {
-    if (requests.length === 0) return "N/A";
-    
-    // Simplified calculation - in a real app, you'd calculate actual durations
-    const completedRequests = requests.filter(r => r.status === "Completed");
-    if (completedRequests.length === 0) return "N/A";
-    
-    return "3 days"; // Placeholder
-  };
-
-  // Helper function to get this month's requests
-  const getThisMonthRequests = (requests) => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
-    const thisMonthRequests = requests.filter(request => {
-      if (!request.created_at) return false;
-      const requestDate = new Date(request.created_at);
-      return requestDate.getMonth() === currentMonth && 
-             requestDate.getFullYear() === currentYear;
-    });
-    
-    return `${thisMonthRequests.length} req`;
-  };
-
-  // Helper function to get appropriate equipment emoji
-  const getEquipmentEmoji = (equipment) => {
-    const count = equipment.length;
-    
-    if (count === 0) return "📭"; // Empty
-    if (equipment.some(e => e.status === "Damaged")) return "⚠️"; // Damaged
-    if (equipment.some(e => e.status === "Needs Maintenance")) return "🔧"; // Maintenance needed
-    
-    // Emoji based on count
-    if (count === 1) return "💻"; // Single laptop
-    if (count >= 2 && count <= 3) return "🖥️"; // Few computers
-    if (count >= 4 && count <= 5) return "📱"; // Multiple devices
-    if (count >= 6) return "🚚"; // Many items
-    return "💻"; // Default
   };
 
   if (loading) {
@@ -495,73 +477,43 @@ const EmployeeDashboard = () => {
         </div>
 
         <main className={styles.modernMain}>
-          {/* Quick Stats - UPDATED WITH RANK IMAGES */}
-          {/* FIXED: Added missing container div for quickStats */}
-          <div className={styles.quickStats}>
-            {/* Equipment Stat Card - CENTERED EMOJI VERSION */}
-            <div 
-              className={`${styles.statCard} ${styles.equipmentStat}`}
-              data-count={assignedEquipment.length}
-              data-has-damaged={assignedEquipment.some(e => e.status === "Damaged")}
-              data-needs-maintenance={assignedEquipment.some(e => e.status === "Needs Maintenance")}
-            >
-              <div className={styles.statIcon}>
-                <i className="fas fa-laptop"></i>
-                {/* FIXED: Using correct className from CSS */}
-                <span className={styles.emojiInsideIcon}>
-                  {getEquipmentEmoji(assignedEquipment)}
-                </span>
-              </div>
-              <div className={styles.statInfo}>
-                <h3>{assignedEquipment.length}</h3>
-                <p>Assigned Equipment</p>
-              </div>
-            </div>
+          {/* Quick Stats - UPDATED: 3 columns for assigned equipment, clearance requests, current rank */}
+          {/* Quick Stats - UPDATED: Current Rank above, Equipment & Clearance as 2 columns below on mobile */}
+<div className={styles.quickStats}>
+  {/* Current Rank - Will be on top on mobile */}
+  <div className={`${styles.statCard} ${styles.rankStat}`}>
+    <div className={styles.statIcon}>
+      <i className="fas fa-user-shield"></i>
+    </div>
+    <div className={styles.statInfo}>
+      <h3>{employee?.rank || "N/A"}</h3>
+      <p>Current Rank</p>
+    </div>
+  </div>
 
-            {/* Clearance Stat Card - CENTERED EMOJI VERSION */}
-            <div 
-              className={`${styles.statCard} ${styles.clearanceStat}`}
-              data-count={clearanceRequests.length}
-              data-pending={clearanceRequests.some(c => c.status === "Pending")}
-            >
-              <div className={styles.statIcon}>
-                <i className="fas fa-file-contract"></i>
-                {/* FIXED: Using correct className from CSS */}
-                <span className={styles.emojiInsideIcon}>
-                  {clearanceRequests.length === 0 ? "✅" : 
-                   clearanceRequests.length > 5 ? "⚠️" : "📄"}
-                </span>
-              </div>
-              <div className={styles.statInfo}>
-                <h3>{clearanceRequests.length}</h3>
-                <p>Clearance Requests</p>
-              </div>
-            </div>
+  {/* Equipment and Clearance - Will be 2 columns below on mobile */}
+  <div className={styles.bottomStats}>
+    <div className={`${styles.statCard} ${styles.equipmentStat}`}>
+      <div className={styles.statIcon}>
+        <i className="fas fa-laptop"></i>
+      </div>
+      <div className={styles.statInfo}>
+        <h3>{assignedEquipment.length}</h3>
+        <p>Assigned Equipment</p>
+      </div>
+    </div>
 
-            <div className={`${styles.statCard} ${styles.rankStat}`}>
-              <div className={styles.statIcon}>
-                {employee?.rank && (employee?.rank_image || getRankImage(employee.rank)) ? (
-                  <img 
-                    src={employee.rank_image || getRankImage(employee.rank)} 
-                    alt={employee.rank}
-                    className={styles.rankImageIcon}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      // Fallback to local image if Supabase image fails
-                      const rankCode = employee?.rank || "";
-                      e.target.src = `/ranks/${rankCode}.png`;
-                    }}
-                  />
-                ) : (
-                  <i className="fas fa-user-shield"></i>
-                )}
-              </div>
-              <div className={styles.statInfo}>
-                <h3>{employee?.rank || "N/A"}</h3>
-                <p>Current Rank</p>
-              </div>
-            </div>
-          </div>
+    <div className={`${styles.statCard} ${styles.clearanceStat}`}>
+      <div className={styles.statIcon}>
+        <i className="fas fa-file-contract"></i>
+      </div>
+      <div className={styles.statInfo}>
+        <h3>{clearanceRequests.length}</h3>
+        <p>Clearance Requests</p>
+      </div>
+    </div>
+  </div>
+</div>
 
           <div className={styles.dashboardGrid}>
             {/* Profile Card */}
@@ -598,45 +550,52 @@ const EmployeeDashboard = () => {
                   <p>{employee?.designation || "Employee"}</p>
                 </div>
 
+                {/* Profile Details - UPDATED: 2 columns for badge number, station, birthdate, date hired, username */}
                 <div className={styles.profileDetails}>
                   <div className={styles.detailGrid}>
-                    <div className={styles.detailItem}>
-                      <i className="fas fa-id-badge"></i>
-                      <div>
-                        <label>Badge Number</label>
-                        <span>{employee?.badge_number || "-"}</span>
+                    {/* First Column */}
+                    <div className={styles.detailColumn}>
+                      <div className={styles.detailItem}>
+                        <i className="fas fa-id-badge"></i>
+                        <div>
+                          <label>Badge Number</label>
+                          <span>{employee?.badge_number || "-"}</span>
+                        </div>
+                      </div>
+
+                      <div className={styles.detailItem}>
+                        <i className="fas fa-map-marker-alt"></i>
+                        <div>
+                          <label>Station</label>
+                          <span>{employee?.station || "-"}</span>
+                        </div>
+                      </div>
+
+                      <div className={styles.detailItem}>
+                        <i className="fas fa-birthday-cake"></i>
+                        <div>
+                          <label>Birth Date</label>
+                          <span>{formatDate(employee?.birth_date)}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className={styles.detailItem}>
-                      <i className="fas fa-map-marker-alt"></i>
-                      <div>
-                        <label>Station</label>
-                        <span>{employee?.station || "-"}</span>
+                    {/* Second Column */}
+                    <div className={styles.detailColumn}>
+                      <div className={styles.detailItem}>
+                        <i className="fas fa-calendar-alt"></i>
+                        <div>
+                          <label>Date Hired</label>
+                          <span>{formatDate(employee?.date_hired)}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className={styles.detailItem}>
-                      <i className="fas fa-birthday-cake"></i>
-                      <div>
-                        <label>Birth Date</label>
-                        <span>{formatDate(employee?.birth_date)}</span>
-                      </div>
-                    </div>
-
-                    <div className={styles.detailItem}>
-                      <i className="fas fa-calendar-alt"></i>
-                      <div>
-                        <label>Date Hired</label>
-                        <span>{formatDate(employee?.date_hired)}</span>
-                      </div>
-                    </div>
-
-                    <div className={styles.detailItem}>
-                      <i className="fas fa-user"></i>
-                      <div>
-                        <label>Username</label>
-                        <span>{employee?.username || "-"}</span>
+                      <div className={styles.detailItem}>
+                        <i className="fas fa-user"></i>
+                        <div>
+                          <label>Username</label>
+                          <span>{employee?.username || "-"}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -646,7 +605,7 @@ const EmployeeDashboard = () => {
 
             {/* Content Area */}
             <div className={styles.contentArea}>
-              {/* Navigation Tabs */}
+              {/* Navigation Tabs - UPDATED: 3 columns for overview, equipment, clearance */}
               <div className={styles.tabNavigation}>
                 <button
                   className={`${styles.tabButton} ${
@@ -655,7 +614,7 @@ const EmployeeDashboard = () => {
                   onClick={() => setActiveTab("overview")}
                 >
                   <i className="fas fa-chart-pie"></i>
-                  Overview
+                  <span className={styles.tabLabel}>Overview</span>
                 </button>
                 <button
                   className={`${styles.tabButton} ${
@@ -664,7 +623,7 @@ const EmployeeDashboard = () => {
                   onClick={() => setActiveTab("equipment")}
                 >
                   <i className="fas fa-laptop"></i>
-                  Equipment
+                  <span className={styles.tabLabel}>Equipment</span>
                 </button>
                 <button
                   className={`${styles.tabButton} ${
@@ -673,7 +632,7 @@ const EmployeeDashboard = () => {
                   onClick={() => setActiveTab("clearance")}
                 >
                   <i className="fas fa-file-contract"></i>
-                  Clearance
+                  <span className={styles.tabLabel}>Clearance</span>
                 </button>
               </div>
 
@@ -706,7 +665,21 @@ const EmployeeDashboard = () => {
                                 {item.item_code || item.itemCode || "N/A"}
                               </small>
                             </div>
-                            <div 
+                            <div className={styles.equipmentActions}>
+                              <button
+                                className={styles.barcodeBtn}
+                                onClick={() =>
+                                  showBarcode(
+                                    item.item_code || item.itemCode,
+                                    item.item_name || item.itemName
+                                  )
+                                }
+                                title="View Barcode"
+                              >
+                                <i className="fas fa-barcode"></i>
+                              </button>
+                            </div>
+                            <div
                               className={styles.equipmentStatus}
                               style={{
                                 backgroundColor: getStatusColor(item.status),
@@ -740,6 +713,7 @@ const EmployeeDashboard = () => {
                             <th>Purchase Date</th>
                             <th>Last Checked</th>
                             <th>Status</th>
+                            <th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -786,11 +760,39 @@ const EmployeeDashboard = () => {
                                   {item.status || "-"}
                                 </span>
                               </td>
+                              <td>
+                                <div className={styles.actionButtons}>
+                                  <button
+                                    className={styles.actionIcon}
+                                    onClick={() =>
+                                      showBarcode(
+                                        item.item_code || item.itemCode,
+                                        item.item_name || item.itemName
+                                      )
+                                    }
+                                    title="View Barcode"
+                                  >
+                                    <i className="fas fa-eye"></i>
+                                  </button>
+                                  <button
+                                    className={styles.actionIcon}
+                                    onClick={() =>
+                                      downloadBarcode(
+                                        item.item_code || item.itemCode,
+                                        item.item_name || item.itemName
+                                      )
+                                    }
+                                    title="Download Barcode"
+                                  >
+                                    <i className="fas fa-download"></i>
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           ))}
                           {assignedEquipment.length === 0 && (
                             <tr>
-                              <td colSpan="6" className={styles.noData}>
+                              <td colSpan="7" className={styles.noData}>
                                 No equipment assigned.
                               </td>
                             </tr>
@@ -837,6 +839,7 @@ const EmployeeDashboard = () => {
                               <th>Request Date</th>
                               <th>Clearance Type</th>
                               <th>Status</th>
+                              <th>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -906,11 +909,33 @@ const EmployeeDashboard = () => {
                                     )}
                                   </div>
                                 </td>
+                                <td>
+                                  <div className={styles.actionButtons}>
+                                    <button
+                                      className={styles.actionIcon}
+                                      onClick={() =>
+                                        viewClearanceDetails(clearance)
+                                      }
+                                      title="View Details"
+                                    >
+                                      <i className="fas fa-eye"></i>
+                                    </button>
+                                    <button
+                                      className={styles.actionIcon}
+                                      onClick={() =>
+                                        downloadClearanceDocument(clearance)
+                                      }
+                                      title="Download Document"
+                                    >
+                                      <i className="fas fa-download"></i>
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                             ))}
                             {clearanceRequests.length === 0 && (
                               <tr>
-                                <td colSpan="3" className={styles.noData}>
+                                <td colSpan="4" className={styles.noData}>
                                   <div className={styles.emptyState}>
                                     <i className="fas fa-file-alt"></i>
                                     <h4>No Clearance Requests</h4>
@@ -927,105 +952,41 @@ const EmployeeDashboard = () => {
                       </div>
                     )}
 
-                    {/* Clearance Information Panel - ENHANCED */}
+                    {/* Clearance Information Panel */}
                     {clearanceRequests.length > 0 && (
-                      <div className={styles.clearanceStatsPanel}>
-                        <div className={styles.panelHeader}>
-                          <i className="fas fa-chart-bar"></i>
-                          <h4>Clearance Overview</h4>
+                      <div className={styles.infoPanel}>
+                        <div className={styles.infoItem}>
+                          <i className="fas fa-info-circle"></i>
+                          <span>
+                            <strong>Pending:</strong>{" "}
+                            {
+                              clearanceRequests.filter(
+                                (c) => c.status === "Pending"
+                              ).length
+                            }{" "}
+                            requests
+                          </span>
                         </div>
-                        <div className={styles.statsGrid}>
-                          {/* Pending Requests */}
-                          <div className={`${styles.statBox} ${styles.pendingStat}`}>
-                            <div className={styles.statIconBox}>
-                              <div className={styles.iconWrapper}>
-                                <i className="fas fa-clock"></i>
-                              </div>
-                              <div className={styles.statNumber}>
-                                {clearanceRequests.filter(c => c.status === "Pending").length}
-                              </div>
-                            </div>
-                            <div className={styles.statLabel}>Pending Requests</div>
-                            <div className={styles.statProgress}>
-                              <div 
-                                className={styles.progressBar}
-                                style={{
-                                  width: `${(clearanceRequests.filter(c => c.status === "Pending").length / clearanceRequests.length) * 100}%`
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-
-                          {/* Completed Requests */}
-                          <div className={`${styles.statBox} ${styles.completedStat}`}>
-                            <div className={styles.statIconBox}>
-                              <div className={styles.iconWrapper}>
-                                <i className="fas fa-check-circle"></i>
-                              </div>
-                              <div className={styles.statNumber}>
-                                {clearanceRequests.filter(c => c.status === "Completed").length}
-                              </div>
-                            </div>
-                            <div className={styles.statLabel}>Completed Requests</div>
-                            <div className={styles.statProgress}>
-                              <div 
-                                className={styles.progressBar}
-                                style={{
-                                  width: `${(clearanceRequests.filter(c => c.status === "Completed").length / clearanceRequests.length) * 100}%`
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-
-                          {/* Latest Request */}
-                          <div className={`${styles.statBox} ${styles.latestStat}`}>
-                            <div className={styles.statIconBox}>
-                              <div className={styles.iconWrapper}>
-                                <i className="fas fa-calendar-star"></i>
-                              </div>
-                              <div className={styles.statDate}>
-                                {clearanceRequests.length > 0 ? clearanceRequests[0].date : "None"}
-                              </div>
-                            </div>
-                            <div className={styles.statLabel}>Latest Request</div>
-                            <div className={styles.statMeta}>
-                              <span className={styles.requestCount}>
-                                <i className="fas fa-file-alt"></i>
-                                {clearanceRequests.length} total requests
-                              </span>
-                              {clearanceRequests[0]?.status && (
-                                <span 
-                                  className={styles.latestStatus}
-                                  style={{ backgroundColor: getStatusColor(clearanceRequests[0].status) }}
-                                >
-                                  {clearanceRequests[0].status}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                        <div className={styles.infoItem}>
+                          <i className="fas fa-info-circle"></i>
+                          <span>
+                            <strong>Completed:</strong>{" "}
+                            {
+                              clearanceRequests.filter(
+                                (c) => c.status === "Completed"
+                              ).length
+                            }{" "}
+                            requests
+                          </span>
                         </div>
-
-                        {/* Summary Bar */}
-                        <div className={styles.summaryBar}>
-                          <div className={styles.summaryItem}>
-                            <i className="fas fa-percentage"></i>
-                            <span>Completion Rate:</span>
-                            <strong>
-                              {clearanceRequests.length > 0 
-                                ? Math.round((clearanceRequests.filter(c => c.status === "Completed").length / clearanceRequests.length) * 100) 
-                                : 0}%
-                            </strong>
-                          </div>
-                          <div className={styles.summaryItem}>
-                            <i className="fas fa-hourglass-half"></i>
-                            <span>Avg Processing:</span>
-                            <strong>{calculateAverageProcessingTime(clearanceRequests)}</strong>
-                          </div>
-                          <div className={styles.summaryItem}>
-                            <i className="fas fa-trend-up"></i>
-                            <span>This Month:</span>
-                            <strong>{getThisMonthRequests(clearanceRequests)}</strong>
-                          </div>
+                        <div className={styles.infoItem}>
+                          <i className="fas fa-info-circle"></i>
+                          <span>
+                            <strong>Latest Request:</strong>{" "}
+                            {clearanceRequests.length > 0
+                              ? clearanceRequests[0].date
+                              : "None"}
+                          </span>
                         </div>
                       </div>
                     )}

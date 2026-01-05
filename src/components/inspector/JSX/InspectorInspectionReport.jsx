@@ -1,11 +1,11 @@
-// Inspection.jsx (Updated to match inspectorinventorycontrol style)
+// Inspection.jsx (Updated Version)
 import React, { useState, useEffect } from "react";
 import styles from "../styles/InspectorInspectionReport.module.css";
 import { Title, Meta } from "react-head";
 import InspectorSidebar from "../../InspectorSidebar";
 import Hamburger from "../../Hamburger";
 import { useSidebar } from "../../SidebarContext";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "../../../lib/supabaseClient.js";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -13,13 +13,23 @@ const InspectorInspectionReport = () => {
   const { isSidebarCollapsed } = useSidebar();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedRows, setExpandedRows] = useState([]);
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [selectedPersonnel, setSelectedPersonnel] = useState(null);
   const [missingEquipmentList, setMissingEquipmentList] = useState({});
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [error, setError] = useState(null);
+
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [selectedReportToApprove, setSelectedReportToApprove] = useState(null);
+  const [approveModalDetails, setApproveModalDetails] = useState({
+    title: "",
+    message: "",
+    routineAmount: 0,
+    clearanceAmount: 0,
+    totalAmount: 0,
+    itemCount: 0,
+  });
 
   // Filter states
   const [filterStatus, setFilterStatus] = useState("All");
@@ -30,24 +40,67 @@ const InspectorInspectionReport = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
 
-  // Card filter state (like inspectorinventorycontrol)
+  // Card filter state
   const [currentFilterCard, setCurrentFilterCard] = useState("total");
 
-  // Load data from personnel_equipment_accountability view
+  // Tab state
+  const [activeTab, setActiveTab] = useState("unsettled"); // "unsettled" or "settled"
+
+  // Load data based on active tab
   useEffect(() => {
     loadAccountabilityData();
-  }, []);
+  }, [activeTab]);
 
-const loadAccountabilityData = async () => {
-  setLoading(true);
-  setError(null);
+  // Helper function to get current user
+  const getCurrentUser = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, first_name, last_name, role")
+          .eq("id", user.id)
+          .single();
 
-  try {
-    // Load accountability records
-    const { data: combinedData, error: combinedError } = await supabase
-      .from("accountability_records")
-      .select(
-        `
+        return {
+          id: user.id,
+          name:
+            profile?.full_name ||
+            `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
+            user.email,
+          email: user.email,
+          role: profile?.role,
+        };
+      }
+      return {
+        id: null,
+        name: "System",
+        email: "system@bfp.gov.ph",
+        role: "system",
+      };
+    } catch (error) {
+      console.error("Error getting current user:", error);
+      return {
+        id: null,
+        name: "System",
+        email: "system@bfp.gov.ph",
+        role: "system",
+      };
+    }
+  };
+
+  const loadAccountabilityData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Build the query based on active tab
+      let query = supabase
+        .from("accountability_records")
+        .select(
+          `
         id,
         personnel_id,
         inventory_id,
@@ -94,424 +147,329 @@ const loadAccountabilityData = async () => {
           created_at
         )
       `
-      )
-      .eq("is_settled", false)
-      .in("record_type", ["LOST", "DAMAGED"])
-      .order("record_date", { ascending: false });
+        )
+        .in("record_type", ["LOST", "DAMAGED"])
+        .order("record_date", { ascending: false });
 
-    if (combinedError) throw combinedError;
-
-    // Create a map to track unique equipment items per personnel
-    const uniqueEquipmentMap = {}; // Key: personnelId-inventoryId
-
-    // First pass: Identify duplicates and keep only one record per equipment
-    const deduplicatedRecords = [];
-
-    (combinedData || []).forEach((item) => {
-      const key = `${item.personnel_id}-${item.inventory_id}`;
-
-      // Check if we've already seen this equipment for this personnel
-      if (!uniqueEquipmentMap[key]) {
-        // First time seeing this equipment for this personnel
-        uniqueEquipmentMap[key] = {
-          count: 1,
-          records: [item],
-          // Keep the most recent record by default
-          selectedRecord: item,
-        };
-        deduplicatedRecords.push(item);
-      } else {
-        // Duplicate found - track it
-        uniqueEquipmentMap[key].count++;
-        uniqueEquipmentMap[key].records.push(item);
-
-        // Check if we should replace with a different record
-        const existingRecordDate = new Date(
-          uniqueEquipmentMap[key].selectedRecord.record_date || 0
-        );
-        const newRecordDate = new Date(item.record_date || 0);
-
-        // Prefer clearance-linked records over routine
-        if (
-          item.source_type === "clearance-linked" &&
-          uniqueEquipmentMap[key].selectedRecord.source_type === "routine"
-        ) {
-          uniqueEquipmentMap[key].selectedRecord = item;
-          // Update in deduplicatedRecords
-          const index = deduplicatedRecords.findIndex(
-            (r) => r.id === uniqueEquipmentMap[key].selectedRecord.id
-          );
-          if (index > -1) {
-            deduplicatedRecords[index] = item;
-          }
-        }
-        // If both are same type, keep the most recent
-        else if (newRecordDate > existingRecordDate) {
-          uniqueEquipmentMap[key].selectedRecord = item;
-          // Update in deduplicatedRecords
-          const index = deduplicatedRecords.findIndex(
-            (r) => r.id === uniqueEquipmentMap[key].selectedRecord.id
-          );
-          if (index > -1) {
-            deduplicatedRecords[index] = item;
-          }
-        }
+      // Filter based on active tab
+      if (activeTab === "unsettled") {
+        query = query.eq("is_settled", false);
+      } else if (activeTab === "settled") {
+        query = query.eq("is_settled", true);
       }
-    });
 
-    // Log duplicates for debugging
-    const duplicates = Object.entries(uniqueEquipmentMap).filter(
-      ([key, data]) => data.count > 1
-    );
+      const { data: combinedData, error: combinedError } = await query;
 
-    if (duplicates.length > 0) {
-      console.log(`Found ${duplicates.length} duplicate equipment items:`);
-      duplicates.forEach(([key, data]) => {
-        console.log(`Equipment ${key}: ${data.count} records`);
-        console.log(
-          "Records:",
-          data.records.map((r) => ({
-            id: r.id,
-            source_type: r.source_type,
-            clearance_request_id: r.clearance_request_id,
-            clearance_type: r.clearance_requests?.type,
-            record_date: r.record_date,
-          }))
-        );
+      if (combinedError) throw combinedError;
+
+      // Create a map to track unique equipment items per personnel
+      const uniqueEquipmentMap = {};
+
+      // First pass: Identify duplicates and keep only one record per equipment
+      const deduplicatedRecords = [];
+
+      (combinedData || []).forEach((item) => {
+        const key = `${item.personnel_id}-${item.inventory_id}`;
+
+        if (!uniqueEquipmentMap[key]) {
+          uniqueEquipmentMap[key] = {
+            count: 1,
+            records: [item],
+            selectedRecord: item,
+          };
+          deduplicatedRecords.push(item);
+        } else {
+          uniqueEquipmentMap[key].count++;
+          uniqueEquipmentMap[key].records.push(item);
+
+          const existingRecordDate = new Date(
+            uniqueEquipmentMap[key].selectedRecord.record_date || 0
+          );
+          const newRecordDate = new Date(item.record_date || 0);
+
+          if (
+            item.source_type === "clearance-linked" &&
+            uniqueEquipmentMap[key].selectedRecord.source_type === "routine"
+          ) {
+            uniqueEquipmentMap[key].selectedRecord = item;
+            const index = deduplicatedRecords.findIndex(
+              (r) => r.id === uniqueEquipmentMap[key].selectedRecord.id
+            );
+            if (index > -1) {
+              deduplicatedRecords[index] = item;
+            }
+          } else if (newRecordDate > existingRecordDate) {
+            uniqueEquipmentMap[key].selectedRecord = item;
+            const index = deduplicatedRecords.findIndex(
+              (r) => r.id === uniqueEquipmentMap[key].selectedRecord.id
+            );
+            if (index > -1) {
+              deduplicatedRecords[index] = item;
+            }
+          }
+        }
       });
-    }
 
-    // Group by personnel and collect ALL clearance types
-    const personnelMap = {};
+      // Group equipment by personnel
+      const personnelMap = {};
 
-    deduplicatedRecords.forEach((item) => {
-      const key = item.clearance_request_id
-        ? `${item.personnel_id}-${item.clearance_request_id}`
-        : `routine-${item.personnel_id}`;
+      deduplicatedRecords.forEach((item) => {
+        const personnelId = item.personnel_id;
 
-      if (!personnelMap[key]) {
-        const clearanceType = item.clearance_requests
-          ? item.clearance_requests.type
-          : "Routine Inspection";
+        if (!personnelMap[personnelId]) {
+          // Build full name
+          const firstName = item.personnel?.first_name || "";
+          const middleName = item.personnel?.middle_name || "";
+          const lastName = item.personnel?.last_name || "";
+          const suffix = item.personnel?.suffix || "";
 
-        // Build full name with middle name and suffix
-        const firstName = item.personnel?.first_name || "";
-        const middleName = item.personnel?.middle_name || "";
-        const lastName = item.personnel?.last_name || "";
-        const suffix = item.personnel?.suffix || "";
+          let fullName = `${firstName} ${middleName} ${lastName}`.trim();
+          if (suffix) {
+            fullName = `${fullName} ${suffix}`;
+          }
 
-        let fullName = `${firstName} ${middleName} ${lastName}`.trim();
-        if (suffix) {
-          fullName = `${fullName} ${suffix}`;
+          // Format: LastName, FirstName MiddleInitial.
+          let formattedName = `${lastName}, ${firstName}`;
+          if (middleName) {
+            formattedName = `${formattedName} ${middleName.charAt(0)}.`;
+          }
+          if (suffix) {
+            formattedName = `${formattedName} ${suffix}`;
+          }
+
+          personnelMap[personnelId] = {
+            personnel_id: personnelId,
+            personnel_name: fullName,
+            formatted_name: formattedName,
+            rank: item.personnel?.rank || "N/A",
+            rank_image: item.personnel?.rank_image || null,
+            badge_number: item.personnel?.badge_number || "N/A",
+            clearance_types: new Set(),
+            clearance_request_ids: new Set(),
+            clearance_statuses: new Set(),
+            clearance_request_dates: new Set(),
+            accountability_status: item.is_settled ? "SETTLED" : "UNSETTLED",
+            total_equipment_count: 0,
+            lost_equipment_count: 0,
+            damaged_equipment_count: 0,
+            total_equipment_value: 0,
+            lost_equipment_value: 0,
+            damaged_equipment_value: 0,
+            total_outstanding_amount: 0,
+            last_inspection_date: item.record_date,
+            last_inspector_name: item.inspection?.inspector_name,
+            last_inspection_findings: item.remarks,
+            missingEquipment: [],
+            routine_equipment_count: 0,
+            clearance_equipment_count: 0,
+            is_settled: item.is_settled,
+            settlement_date: item.settlement_date,
+            settlement_method: item.settlement_method,
+            settlement_remarks: item.settlement_remarks,
+          };
         }
 
-        // Format: LastName, FirstName MiddleInitial.
-        let formattedName = `${lastName}, ${firstName}`;
-        if (middleName) {
-          formattedName = `${formattedName} ${middleName.charAt(0)}.`;
-        }
-        if (suffix) {
-          formattedName = `${formattedName} ${suffix}`;
+        // Add clearance type if it exists
+        if (item.clearance_requests?.type) {
+          personnelMap[personnelId].clearance_types.add(
+            item.clearance_requests.type
+          );
+          personnelMap[personnelId].clearance_request_ids.add(
+            item.clearance_request_id
+          );
+          personnelMap[personnelId].clearance_statuses.add(
+            item.clearance_requests.status
+          );
+          if (item.clearance_requests.created_at) {
+            personnelMap[personnelId].clearance_request_dates.add(
+              item.clearance_requests.created_at
+            );
+          }
         }
 
-        personnelMap[key] = {
-          personnel_id: item.personnel_id,
-          personnel_name: fullName,
-          formatted_name: formattedName,
-          rank: item.personnel?.rank || "N/A",
-          rank_image: item.personnel?.rank_image || null,
-          badge_number: item.personnel?.badge_number || "N/A",
-          clearance_type: clearanceType,
-          clearance_types: new Set([clearanceType]), // Store as Set for multiple types
-          clearance_status: item.clearance_requests?.status || "N/A",
-          clearance_request_id: item.clearance_request_id,
-          clearance_request_date:
-            item.clearance_requests?.created_at || item.record_date,
-          accountability_status: "UNSETTLED",
-          total_equipment_count: 0,
-          lost_equipment_count: 0,
-          damaged_equipment_count: 0,
-          total_equipment_value: 0,
-          lost_equipment_value: 0,
-          damaged_equipment_value: 0,
-          total_outstanding_amount: 0,
+        // Add equipment to the personnel's list
+        const equipmentValue =
+          item.amount_due || item.inventory?.current_value || 0;
+        const isLost = item.record_type === "LOST";
+        const isDamaged = item.record_type === "DAMAGED";
+
+        personnelMap[personnelId].total_equipment_count++;
+        personnelMap[personnelId].total_equipment_value += equipmentValue;
+
+        // Track routine vs clearance equipment
+        if (item.source_type === "routine") {
+          personnelMap[personnelId].routine_equipment_count++;
+        } else if (item.source_type === "clearance-linked") {
+          personnelMap[personnelId].clearance_equipment_count++;
+        }
+
+        if (isLost) {
+          personnelMap[personnelId].lost_equipment_count++;
+          personnelMap[personnelId].lost_equipment_value += equipmentValue;
+          if (!item.is_settled) {
+            personnelMap[personnelId].total_outstanding_amount +=
+              equipmentValue;
+          }
+        } else if (isDamaged) {
+          personnelMap[personnelId].damaged_equipment_count++;
+          personnelMap[personnelId].damaged_equipment_value +=
+            equipmentValue * 0.5;
+          if (!item.is_settled) {
+            personnelMap[personnelId].total_outstanding_amount +=
+              equipmentValue * 0.5;
+          }
+        }
+
+        personnelMap[personnelId].missingEquipment.push({
+          source: item.source_type || "routine",
+          accountability_id: item.id,
+          inventory_id: item.inventory?.id,
+          name: item.inventory?.item_name,
+          item_code: item.inventory?.item_code,
+          category: item.inventory?.category,
+          status: item.record_type,
+          price: equipmentValue,
           last_inspection_date: item.record_date,
-          last_inspector_name: item.inspection?.inspector_name,
-          last_inspection_findings: item.remarks,
-          missingEquipment: [],
-          isRoutine: !item.clearance_request_id,
-          source_type: item.source_type || "routine",
-        };
-      }
-
-      // Add clearance type to the set if it exists
-      if (item.clearance_requests?.type) {
-        personnelMap[key].clearance_types.add(item.clearance_requests.type);
-      }
-
-      // Add equipment to the personnel's list (deduplicated)
-      const equipmentValue =
-        item.amount_due || item.inventory?.current_value || 0;
-      const isLost = item.record_type === "LOST";
-      const isDamaged = item.record_type === "DAMAGED";
-
-      personnelMap[key].total_equipment_count++;
-      personnelMap[key].total_equipment_value += equipmentValue;
-
-      if (isLost) {
-        personnelMap[key].lost_equipment_count++;
-        personnelMap[key].lost_equipment_value += equipmentValue;
-        personnelMap[key].total_outstanding_amount += equipmentValue;
-      } else if (isDamaged) {
-        personnelMap[key].damaged_equipment_count++;
-        personnelMap[key].damaged_equipment_value += equipmentValue * 0.5;
-        personnelMap[key].total_outstanding_amount += equipmentValue * 0.5;
-      }
-
-      personnelMap[key].missingEquipment.push({
-        source: item.source_type || "routine",
-        accountability_id: item.id,
-        inventory_id: item.inventory?.id,
-        name: item.inventory?.item_name,
-        item_code: item.inventory?.item_code,
-        category: item.inventory?.category,
-        status: item.record_type,
-        price: equipmentValue,
-        last_inspection_date: item.record_date,
-        inspection_findings: item.remarks,
-        inspector_name: item.inspection?.inspector_name,
-        is_settled: item.is_settled,
-        source_type: item.source_type,
-        clearance_request_id: item.clearance_request_id,
-        clearance_type: item.clearance_requests?.type,
-      });
-
-      // Update latest inspection info
-      if (item.record_date) {
-        const currentDate = new Date(
-          personnelMap[key].last_inspection_date || 0
-        );
-        const newDate = new Date(item.record_date);
-        if (newDate > currentDate) {
-          personnelMap[key].last_inspection_date = item.record_date;
-          personnelMap[key].last_inspector_name =
-            item.inspection?.inspector_name;
-          personnelMap[key].last_inspection_findings = item.remarks;
-        }
-      }
-    });
-
-    // Convert to array format
-    const accountabilityReports = Object.values(personnelMap).map(
-      (item, index) => {
-        const routineEquipment = item.missingEquipment.filter(
-          (eq) => eq.source_type === "routine"
-        );
-        const clearanceEquipment = item.missingEquipment.filter(
-          (eq) => eq.source_type === "clearance-linked"
-        );
-
-        const routineAmount = routineEquipment.reduce(
-          (sum, eq) => sum + (eq.price || 0),
-          0
-        );
-        const clearanceAmount = clearanceEquipment.reduce(
-          (sum, eq) => sum + (eq.price || 0),
-          0
-        );
-
-        // Convert Set to array and create display text
-        const clearanceTypesArray = Array.from(item.clearance_types);
-        const clearanceTypeText =
-          clearanceTypesArray.length > 1
-            ? clearanceTypesArray.join(", ")
-            : clearanceTypesArray[0] || "Routine Inspection";
-
-        return {
-          id: item.clearance_request_id || `routine-${index + 1}`,
-          personnel_id: item.personnel_id,
-          rank: item.rank,
-          rank_image: item.rank_image,
-          personnelName: item.personnel_name,
-          formattedName: item.formatted_name || item.personnel_name,
-          badge_number: item.badge_number,
-          clearanceType: clearanceTypeText, // Combined types
-          clearanceTypes: clearanceTypesArray, // Array of all types
-          clearanceTypeCount: clearanceTypesArray.length,
-          requestDate: item.clearance_request_date,
-          totalEquipment: item.total_equipment_count,
-          lostEquipment: item.lost_equipment_count,
-          damagedEquipment: item.damaged_equipment_count,
-          totalValue: item.total_equipment_value,
-          lostValue: item.lost_equipment_value,
-          damagedValue: item.damaged_equipment_value,
-          totalMissingAmount: item.total_outstanding_amount,
-          findings: item.last_inspection_findings || "No findings recorded",
-          lastInspectionDate: item.last_inspection_date,
-          lastInspector: item.last_inspector_name,
-          clearance_request_id: item.clearance_request_id,
-          clearance_status: item.clearance_status,
-          status: "Unsettled",
-          missingEquipment: item.missingEquipment,
-          isRoutine: item.isRoutine,
+          inspection_findings: item.remarks,
+          inspector_name: item.inspection?.inspector_name,
+          is_settled: item.is_settled,
           source_type: item.source_type,
-          // Combined accountability flags
-          hasCombinedAccountability:
-            routineEquipment.length > 0 && clearanceEquipment.length > 0,
-          routineEquipmentCount: routineEquipment.length,
-          clearanceEquipmentCount: clearanceEquipment.length,
-          routineAmount: routineAmount,
-          clearanceAmount: clearanceAmount,
-        };
-      }
-    );
-
-    setReports(accountabilityReports);
-
-    // Sync with summary table (using deduplicated data)
-    await syncAccountabilityTable(personnelMap);
-  } catch (error) {
-    console.error("Error loading accountability data:", error);
-    setError("Failed to load accountability data: " + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-  const syncAccountabilityTable = async (personnelMap) => {
-    try {
-      // Prepare records for insertion/update
-      const accountabilityRecords = Object.values(personnelMap).map((item) => {
-        const record = {
-          personnel_id: item.personnel_id,
-          personnel_name: item.personnel_name,
-          rank: item.rank,
-          badge_number: item.badge_number,
-          clearance_type: item.clearance_type,
-          clearance_status: item.clearance_status,
-          clearance_request_date:
-            item.clearance_request_date?.split("T")[0] ||
-            new Date().toISOString().split("T")[0],
-
-          total_equipment_count: item.total_equipment_count,
-          lost_equipment_count: item.lost_equipment_count,
-          damaged_equipment_count: item.damaged_equipment_count,
-          total_equipment_value: item.total_equipment_value,
-          lost_equipment_value: item.lost_equipment_value,
-          damaged_equipment_value: item.damaged_equipment_value,
-          total_outstanding_amount: item.total_outstanding_amount,
-
-          last_inspection_date: item.last_inspection_date?.split("T")[0],
-          last_inspector_name: item.last_inspector_name,
-          last_inspection_findings: item.last_inspection_findings,
-
-          accountability_status: "UNSETTLED",
-          calculated_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Only include clearance_request_id if it exists
-        if (item.clearance_request_id) {
-          record.clearance_request_id = item.clearance_request_id;
-        }
-
-        return record;
-      });
-
-      // Use upsert with onConflict - only works with the unique constraint
-      const { error: upsertError } = await supabase
-        .from("personnel_equipment_accountability_table")
-        .upsert(accountabilityRecords, {
-          onConflict: "personnel_id,clearance_request_id",
-          ignoreDuplicates: false,
+          clearance_request_id: item.clearance_request_id,
+          clearance_type: item.clearance_requests?.type,
+          clearance_status: item.clearance_requests?.status,
+          settlement_date: item.settlement_date,
+          settlement_method: item.settlement_method,
         });
 
-      if (upsertError) {
-        console.error("Error upserting accountability records:", upsertError);
-        // Fallback to manual upsert
-        await manualUpsertRecords(accountabilityRecords);
-      }
-    } catch (error) {
-      console.error("Error in syncAccountabilityTable:", error);
-    }
-  };
-
-  // Manual upsert function as fallback
-  const manualUpsertRecords = async (records) => {
-    try {
-      for (const record of records) {
-        // Build the conflict condition based on whether clearance_request_id exists
-        let conflictColumns = ["personnel_id"];
-        if (record.clearance_request_id) {
-          conflictColumns.push("clearance_request_id");
-        }
-
-        // Use upsert with the correct conflict target
-        const { error } = await supabase
-          .from("personnel_equipment_accountability_table")
-          .upsert(record, {
-            onConflict: conflictColumns.join(","),
-            ignoreDuplicates: false,
-          });
-
-        if (error) {
-          console.error(
-            `Error upserting record for ${record.personnel_name}:`,
-            error
+        // Update latest inspection info
+        if (item.record_date) {
+          const currentDate = new Date(
+            personnelMap[personnelId].last_inspection_date || 0
           );
+          const newDate = new Date(item.record_date);
+          if (newDate > currentDate) {
+            personnelMap[personnelId].last_inspection_date = item.record_date;
+            personnelMap[personnelId].last_inspector_name =
+              item.inspection?.inspector_name;
+            personnelMap[personnelId].last_inspection_findings = item.remarks;
+          }
         }
-      }
+      });
+
+      // Convert to array format
+      const accountabilityReports = Object.values(personnelMap).map(
+        (item, index) => {
+          const clearanceTypesArray = Array.from(item.clearance_types);
+          const clearanceRequestIdsArray = Array.from(
+            item.clearance_request_ids
+          );
+          const clearanceStatusesArray = Array.from(item.clearance_statuses);
+          const clearanceRequestDatesArray = Array.from(
+            item.clearance_request_dates
+          );
+
+          const routineEquipment = item.missingEquipment.filter(
+            (eq) => eq.source_type === "routine"
+          );
+          const clearanceEquipment = item.missingEquipment.filter(
+            (eq) => eq.source_type === "clearance-linked"
+          );
+
+          const routineAmount = routineEquipment.reduce(
+            (sum, eq) => sum + (eq.price || 0),
+            0
+          );
+          const clearanceAmount = clearanceEquipment.reduce(
+            (sum, eq) => sum + (eq.price || 0),
+            0
+          );
+
+          // Determine clearance type display
+          let clearanceTypeDisplay = "Routine Inspection Only";
+          if (clearanceTypesArray.length === 1) {
+            clearanceTypeDisplay = clearanceTypesArray[0];
+          } else if (clearanceTypesArray.length > 1) {
+            clearanceTypeDisplay = `Multiple: ${clearanceTypesArray.join(
+              ", "
+            )}`;
+          }
+
+          // Determine clearance status
+          let overallClearanceStatus = "No Clearance";
+          if (clearanceStatusesArray.length > 0) {
+            if (clearanceStatusesArray.includes("In Progress")) {
+              overallClearanceStatus = "In Progress";
+            } else if (
+              clearanceStatusesArray.includes("Pending for Approval")
+            ) {
+              overallClearanceStatus = "Pending for Approval";
+            } else {
+              overallClearanceStatus = clearanceStatusesArray[0];
+            }
+          }
+
+          // Get earliest request date
+          const earliestRequestDate =
+            clearanceRequestDatesArray.length > 0
+              ? clearanceRequestDatesArray.sort()[0]
+              : null;
+
+          return {
+            id: `personnel-${item.personnel_id}-${index + 1}`,
+            personnel_id: item.personnel_id,
+            rank: item.rank,
+            rank_image: item.rank_image,
+            personnelName: item.personnel_name,
+            formattedName: item.formatted_name || item.personnel_name,
+            badge_number: item.badge_number,
+            clearanceType: clearanceTypeDisplay,
+            clearanceTypes: clearanceTypesArray,
+            clearanceTypeCount: clearanceTypesArray.length,
+            clearanceRequestIds: clearanceRequestIdsArray,
+            clearanceRequestCount: clearanceRequestIdsArray.length,
+            clearanceStatus: overallClearanceStatus,
+            requestDate: earliestRequestDate || item.last_inspection_date,
+            totalEquipment: item.total_equipment_count,
+            lostEquipment: item.lost_equipment_count,
+            damagedEquipment: item.damaged_equipment_count,
+            totalValue: item.total_equipment_value,
+            lostValue: item.lost_equipment_value,
+            damagedValue: item.damaged_equipment_value,
+            totalMissingAmount: item.total_outstanding_amount,
+            findings: item.last_inspection_findings || "No findings recorded",
+            lastInspectionDate: item.last_inspection_date,
+            lastInspector: item.last_inspector_name,
+            status: item.is_settled ? "Settled" : "Unsettled",
+            missingEquipment: item.missingEquipment,
+            hasCombinedAccountability:
+              routineEquipment.length > 0 && clearanceEquipment.length > 0,
+            hasMultipleClearances: clearanceRequestIdsArray.length > 1,
+            routineEquipmentCount: item.routine_equipment_count,
+            clearanceEquipmentCount: item.clearance_equipment_count,
+            routineAmount: routineAmount,
+            clearanceAmount: clearanceAmount,
+            is_settled: item.is_settled,
+            settlement_date: item.settlement_date,
+            settlement_method: item.settlement_method,
+            settlement_remarks: item.settlement_remarks,
+          };
+        }
+      );
+
+      setReports(accountabilityReports);
     } catch (error) {
-      console.error("Error in manualUpsertRecords:", error);
-    }
-  };
-
-  // Helper function to update existing records
-  const updateExistingRecords = async (records) => {
-    try {
-      for (const record of records) {
-        // Check if record exists
-        let query = supabase
-          .from("personnel_equipment_accountability_table")
-          .select("id")
-          .eq("personnel_id", record.personnel_id);
-
-        if (record.clearance_request_id) {
-          query = query.eq("clearance_request_id", record.clearance_request_id);
-        } else {
-          query = query.is("clearance_request_id", null);
-        }
-
-        const { data: existingRecord } = await query.maybeSingle();
-
-        if (existingRecord) {
-          // Update existing record
-          await supabase
-            .from("personnel_equipment_accountability_table")
-            .update(record)
-            .eq("id", existingRecord.id);
-        } else {
-          // Insert new record
-          await supabase
-            .from("personnel_equipment_accountability_table")
-            .insert([record]);
-        }
-      }
-    } catch (error) {
-      console.error("Error in updateExistingRecords:", error);
+      console.error("Error loading accountability data:", error);
+      setError("Failed to load accountability data: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const approveSettlement = async (report) => {
     // Filter out already returned equipment and get unique inventory items
-    const unsettledEquipment = [];
-    const processedInventoryIds = new Set();
-
-    report.missingEquipment.forEach((eq) => {
-      if (!eq.is_settled && !processedInventoryIds.has(eq.inventory_id)) {
-        unsettledEquipment.push(eq);
-        processedInventoryIds.add(eq.inventory_id);
-      }
-    });
+    const unsettledEquipment = report.missingEquipment.filter(
+      (eq) => !eq.is_settled
+    );
 
     if (unsettledEquipment.length === 0) {
       toast.info("All equipment has already been settled or returned.");
@@ -535,154 +493,132 @@ const loadAccountabilityData = async () => {
 
     const totalAmount = routineAmount + clearanceAmount;
 
-    const message = report.hasCombinedAccountability
-      ? `Approve settlement for ${
-          report.personnelName
-        }? This will settle BOTH routine (₱${formatCurrency(
-          routineAmount
-        )}) and clearance accountability (₱${formatCurrency(
-          clearanceAmount
-        )}). Total: ₱${formatCurrency(totalAmount)}`
-      : `Approve settlement for ${report.personnelName}? This will settle ${
-          unsettledEquipment.length
-        } items for ₱${formatCurrency(totalAmount)}`;
+    // Set up modal details
+    const modalTitle = report.hasCombinedAccountability
+      ? `⚡ Settle Combined Accountability`
+      : `✅ Approve Settlement`;
 
-    if (!window.confirm(message)) return;
+    const modalMessage = report.hasCombinedAccountability
+      ? `You are about to settle accountability for <strong>${
+          report.personnelName
+        }</strong>.<br/><br/>
+         This includes:
+         <div class="modal-breakdown">
+           <div>🔵 <strong>Routine Inspection:</strong> ₱${formatCurrency(
+             routineAmount
+           )}</div>
+           <div>🟣 <strong>Clearance Request:</strong> ₱${formatCurrency(
+             clearanceAmount
+           )}</div>
+         </div>
+         <br/>
+         <div class="modal-total">
+           ⚡ <strong>Total Amount:</strong> ₱${formatCurrency(totalAmount)}
+         </div>`
+      : `You are about to approve settlement for <strong>${
+          report.personnelName
+        }</strong>.<br/><br/>
+         This will settle <strong>${
+           unsettledEquipment.length
+         }</strong> item(s) for a total of <strong>₱${formatCurrency(
+          totalAmount
+        )}</strong>.<br/><br/>
+         🏷️ <strong>Clearance Type:</strong> ${report.clearanceType}`;
+
+    // Store the report and show modal
+    setSelectedReportToApprove(report);
+    setApproveModalDetails({
+      title: modalTitle,
+      message: modalMessage,
+      routineAmount: routineAmount,
+      clearanceAmount: clearanceAmount,
+      totalAmount: totalAmount,
+      itemCount: unsettledEquipment.length,
+      hasCombinedAccountability: report.hasCombinedAccountability,
+    });
+    setShowApproveModal(true);
+  };
+
+  const handleConfirmApproval = async () => {
+    if (!selectedReportToApprove) return;
 
     try {
-      // Get ALL accountability records for these inventory items (including duplicates)
+      // Get current user info
+      const currentUser = await getCurrentUser();
+
+      // Check if there are lost items that cannot be returned
+      const hasLostItems = selectedReportToApprove.missingEquipment.some(
+        (eq) => eq.status === "LOST" && !eq.is_settled
+      );
+
+      const settlementMethod = "Cash Payment";
+
+      // Update accountability records
+      const unsettledEquipment =
+        selectedReportToApprove.missingEquipment.filter((eq) => !eq.is_settled);
+
       const inventoryIds = unsettledEquipment
         .map((eq) => eq.inventory_id)
         .filter(Boolean);
 
-      const { data: allAccountabilityRecords, error: fetchError } =
-        await supabase
-          .from("accountability_records")
-          .select("*")
-          .eq("personnel_id", report.personnel_id)
-          .in("inventory_id", inventoryIds)
-          .eq("is_settled", false);
-
-      if (fetchError) throw fetchError;
-
-      // Settle ALL duplicate records for these inventory items
-      const allAccountabilityIds =
-        allAccountabilityRecords?.map((record) => record.id) || [];
-
-      const { error: accountabilityError } = await supabase
-        .from("accountability_records")
-        .update({
-          is_settled: true,
-          settlement_date: new Date().toISOString().split("T")[0],
-          settlement_method: "Cash Payment",
-          updated_at: new Date().toISOString(),
-        })
-        .in("id", allAccountabilityIds);
-
-      if (accountabilityError) throw accountabilityError;
-
-      // 2. If this is linked to a clearance, update clearance_inventory too
-      if (report.clearance_request_id) {
-        // Get all clearance inventory items for this request
-        const { data: clearanceItems, error: clearanceItemsError } =
+      if (inventoryIds.length > 0) {
+        const { data: allAccountabilityRecords, error: fetchError } =
           await supabase
-            .from("clearance_inventory")
-            .select("id, inventory_id, status")
-            .eq("clearance_request_id", report.clearance_request_id)
-            .eq("status", "Pending");
+            .from("accountability_records")
+            .select("*")
+            .eq("personnel_id", selectedReportToApprove.personnel_id)
+            .in("inventory_id", inventoryIds)
+            .eq("is_settled", false);
 
-        if (clearanceItemsError) {
-          console.error("Error fetching clearance items:", clearanceItemsError);
+        if (!fetchError && allAccountabilityRecords?.length > 0) {
+          const accountabilityIds = allAccountabilityRecords.map((r) => r.id);
+          await supabase
+            .from("accountability_records")
+            .update({
+              is_settled: true,
+              settlement_date: new Date().toISOString().split("T")[0],
+              settlement_method: settlementMethod,
+              settlement_remarks: `Settled by ${currentUser.name}`,
+              updated_at: new Date().toISOString(),
+            })
+            .in("id", accountabilityIds);
         }
+      }
 
-        // Update clearance_inventory status to "Cleared" for settled accountability
-        if (clearanceItems && clearanceItems.length > 0) {
-          // Get inventory IDs from accountability
-          const accountableInventoryIds = report.missingEquipment
-            .filter(
-              (eq) => eq.source_type === "clearance-linked" && eq.inventory_id
-            )
-            .map((eq) => eq.inventory_id);
+      // Update personnel_equipment_accountability_table if needed
+      // (This table should already exist with the data)
 
-          if (accountableInventoryIds.length > 0) {
-            const { error: clearanceInventoryError } = await supabase
-              .from("clearance_inventory")
-              .update({
-                status: "Cleared",
-                remarks: "Accountability settled - Equipment cleared",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("clearance_request_id", report.clearance_request_id)
-              .in("inventory_id", accountableInventoryIds)
-              .eq("status", "Pending");
-
-            if (clearanceInventoryError) {
-              console.error(
-                "Error updating clearance inventory:",
-                clearanceInventoryError
-              );
-              // Don't throw, continue with other updates
-            }
-          }
-
-          // Also update the clearance request itself
-          const { error: clearanceError } = await supabase
+      // Update clearance requests status
+      if (selectedReportToApprove.clearanceRequestIds?.length > 0) {
+        for (const requestId of selectedReportToApprove.clearanceRequestIds) {
+          await supabase
             .from("clearance_requests")
             .update({
-              status: "Completed",
-              completed_at: new Date().toISOString(),
-              missing_amount: report.totalMissingAmount,
+              status: hasLostItems ? "In Progress" : "Pending for Approval",
               updated_at: new Date().toISOString(),
-              // Mark that accountability has been settled
-              has_pending_accountability: false,
-              pending_accountability_amount: 0,
             })
-            .eq("id", report.clearance_request_id);
-
-          if (clearanceError) {
-            console.error("Clearance update error:", clearanceError);
-          }
+            .eq("id", requestId);
         }
       }
 
-      // 3. Update summary table
-      let summaryQuery = supabase
-        .from("personnel_equipment_accountability_table")
-        .update({
-          accountability_status: "SETTLED",
-          settlement_date: new Date().toISOString().split("T")[0],
-          settlement_method: "Cash Payment",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("personnel_id", report.personnel_id);
-
-      // Handle null clearance_request_id properly
-      if (report.clearance_request_id) {
-        summaryQuery = summaryQuery.eq(
-          "clearance_request_id",
-          report.clearance_request_id
-        );
-      } else {
-        summaryQuery = summaryQuery.is("clearance_request_id", null);
-      }
-
-      const { error: summaryError } = await summaryQuery;
-
-      if (summaryError) throw summaryError;
-
-      // 4. Update local state
+      // Update local state
       setReports((prevReports) =>
         prevReports.map((r) => {
-          if (
-            r.personnel_id === report.personnel_id &&
-            r.clearance_request_id === report.clearance_request_id
-          ) {
+          if (r.personnel_id === selectedReportToApprove.personnel_id) {
             return {
               ...r,
               status: "Settled",
+              is_settled: true,
+              settlement_date: new Date().toISOString().split("T")[0],
+              settlement_method: settlementMethod,
+              clearance_status: hasLostItems
+                ? "In Progress"
+                : "Pending for Approval",
               missingEquipment: r.missingEquipment.map((eq) => ({
                 ...eq,
                 is_settled: true,
+                settlement_date: new Date().toISOString().split("T")[0],
+                settlement_method: settlementMethod,
               })),
             };
           }
@@ -690,10 +626,23 @@ const loadAccountabilityData = async () => {
         })
       );
 
-      toast.success("Settlement approved successfully!");
+      // Close modal
+      setShowApproveModal(false);
+      setSelectedReportToApprove(null);
+
+      toast.success(
+        `✅ Accountability settled! ${
+          hasLostItems
+            ? "Clearance remains in progress."
+            : "Ready for clearance approval."
+        }`
+      );
+
+      // Reload data
+      loadAccountabilityData();
     } catch (error) {
       console.error("Error approving settlement:", error);
-      toast.error(`Failed to approve settlement: ${error.message}`);
+      toast.error(`❌ Failed to approve settlement: ${error.message}`);
     }
   };
 
@@ -717,6 +666,8 @@ const loadAccountabilityData = async () => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
       currency: "PHP",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount || 0);
   };
 
@@ -768,10 +719,8 @@ const loadAccountabilityData = async () => {
     setShowDetailsModal(true);
   };
 
-  // Filter reports
+  // Filter reports based on active tab
   const filteredReports = reports.filter((report) => {
-    const matchesStatus =
-      filterStatus === "All" || report.status === filterStatus;
     const matchesType =
       filterClearanceType === "All" ||
       report.clearanceType === filterClearanceType;
@@ -782,10 +731,10 @@ const loadAccountabilityData = async () => {
       (report.badge_number &&
         report.badge_number.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    return matchesStatus && matchesType && matchesSearch;
+    return matchesType && matchesSearch;
   });
 
-  // Filter by card selection (like inspectorinventorycontrol)
+  // Filter by card selection
   const applyFilters = (items) => {
     let filtered = [...items];
     if (currentFilterCard === "unsettled") {
@@ -798,29 +747,29 @@ const loadAccountabilityData = async () => {
 
   const cardFilteredReports = applyFilters(filteredReports);
 
-  // Only show personnel who failed inspection
-  const failedInspections = cardFilteredReports.filter(
-    (report) =>
-      report.missingEquipment.length > 0 ||
-      report.status === "Unsettled" ||
-      (report.clearance_status && report.clearance_status !== "Completed")
+  // Only show personnel who failed inspection or have accountability
+  const accountabilityReports = cardFilteredReports.filter(
+    (report) => report.missingEquipment.length > 0
   );
 
   // Pagination
   const totalPages = Math.max(
     1,
-    Math.ceil(failedInspections.length / rowsPerPage)
+    Math.ceil(accountabilityReports.length / rowsPerPage)
   );
   const pageStart = (currentPage - 1) * rowsPerPage;
-  const paginated = failedInspections.slice(pageStart, pageStart + rowsPerPage);
+  const paginated = accountabilityReports.slice(
+    pageStart,
+    pageStart + rowsPerPage
+  );
 
   // Pagination buttons
   const renderPaginationButtons = () => {
     const pageCount = Math.max(
       1,
-      Math.ceil(failedInspections.length / rowsPerPage)
+      Math.ceil(accountabilityReports.length / rowsPerPage)
     );
-    const hasNoData = failedInspections.length === 0;
+    const hasNoData = accountabilityReports.length === 0;
 
     const buttons = [];
 
@@ -1003,7 +952,7 @@ const loadAccountabilityData = async () => {
     if (!window.confirm(confirmMessage)) return;
 
     try {
-      // 1. UPDATE INVENTORY STATUS (Physical equipment)
+      // 1. UPDATE INVENTORY STATUS
       if (equipmentItem.inventory_id) {
         const inventoryUpdate = {
           status: condition,
@@ -1011,7 +960,6 @@ const loadAccountabilityData = async () => {
           updated_at: new Date().toISOString(),
         };
 
-        // If equipment was lost and found, update location
         if (equipmentItem.status === "LOST" && condition === "Good") {
           inventoryUpdate.current_location = "Storage";
           inventoryUpdate.assigned_to = "Unassigned";
@@ -1032,13 +980,9 @@ const loadAccountabilityData = async () => {
             `Failed to update inventory: ${inventoryError.message}`
           );
         }
-
-        console.log(
-          `✅ Inventory updated: ${equipmentItem.name} → ${condition}`
-        );
       }
 
-      // 2. UPDATE ACCOUNTABILITY RECORD (Financial responsibility)
+      // 2. UPDATE ACCOUNTABILITY RECORD
       const { error: accountabilityError } = await supabase
         .from("accountability_records")
         .update({
@@ -1048,7 +992,7 @@ const loadAccountabilityData = async () => {
           return_remarks: returnDetails,
           settlement_date: new Date().toISOString().split("T")[0],
           settlement_method: "Equipment Returned",
-          amount_paid: 0, // No payment for returns
+          amount_paid: 0,
           updated_at: new Date().toISOString(),
           record_type:
             equipmentItem.status === "LOST" ? "RETURNED" : "REPAIRED",
@@ -1057,9 +1001,7 @@ const loadAccountabilityData = async () => {
 
       if (accountabilityError) throw accountabilityError;
 
-      console.log(`✅ Accountability record marked as returned`);
-
-      // 3. UPDATE CLEARANCE INVENTORY (If part of clearance)
+      // 3. UPDATE CLEARANCE INVENTORY
       if (report.clearance_request_id && equipmentItem.inventory_id) {
         const { error: clearanceError } = await supabase
           .from("clearance_inventory")
@@ -1075,47 +1017,10 @@ const loadAccountabilityData = async () => {
 
         if (clearanceError) {
           console.warn("Warning updating clearance inventory:", clearanceError);
-          // Don't throw, just log warning
         }
       }
 
-      // 4. CREATE NEW INSPECTION RECORD FOR THE RETURN (Optional but good for audit)
-      if (equipmentItem.inspection_id) {
-        const { data: originalInspection, error: inspectionError } =
-          await supabase
-            .from("inspections")
-            .select("*")
-            .eq("id", equipmentItem.inspection_id)
-            .single();
-
-        if (!inspectionError && originalInspection) {
-          const returnInspection = {
-            equipment_id: equipmentItem.inventory_id,
-            inspector_id: originalInspection.inspector_id || null,
-            inspector_name: originalInspection.inspector_name || "System",
-            schedule_inspection_date: new Date().toISOString().split("T")[0],
-            reschedule_inspection_date: new Date().toISOString().split("T")[0],
-            status: "COMPLETED",
-            findings: `Equipment return: ${returnDetails}. Condition after return: ${condition}`,
-            recommendations: `Equipment accountability cleared.`,
-            inspection_date: new Date().toISOString().split("T")[0],
-            assigned_to:
-              condition === "Good" ? "Unassigned" : report.personnelName,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-
-          await supabase.from("inspections").insert([returnInspection]);
-        }
-      }
-
-      // 5. RECALCULATE ACCOUNTABILITY SUMMARY
-      await recalculateAccountabilitySummary(
-        report.personnel_id,
-        report.clearance_request_id
-      );
-
-      // 6. UPDATE LOCAL STATE IMMEDIATELY
+      // Update local state
       setReports((prevReports) =>
         prevReports.map((r) => {
           if (
@@ -1130,14 +1035,13 @@ const loadAccountabilityData = async () => {
                     status: "RETURNED",
                     return_remarks: returnDetails,
                     return_date: new Date().toISOString().split("T")[0],
+                    settlement_method: "Equipment Returned",
                   }
                 : eq
             );
 
-            // Check if all equipment is now settled
             const allSettled = updatedEquipment.every((eq) => eq.is_settled);
 
-            // Recalculate outstanding amount
             const newOutstandingAmount = updatedEquipment.reduce(
               (sum, eq) => (eq.is_settled ? sum : sum + (eq.price || 0)),
               0
@@ -1146,9 +1050,9 @@ const loadAccountabilityData = async () => {
             return {
               ...r,
               status: allSettled ? "Settled" : "Unsettled",
+              is_settled: allSettled,
               missingEquipment: updatedEquipment,
               totalMissingAmount: newOutstandingAmount,
-              // Update counts
               lostEquipment: updatedEquipment.filter(
                 (eq) => eq.status === "LOST" && !eq.is_settled
               ).length,
@@ -1161,7 +1065,6 @@ const loadAccountabilityData = async () => {
         })
       );
 
-      // Also update the modal if it's open
       if (showMissingModal && selectedPersonnel) {
         setMissingEquipmentList((prev) => ({
           ...prev,
@@ -1177,92 +1080,12 @@ const loadAccountabilityData = async () => {
         `✅ Equipment "${equipmentItem.name}" returned successfully!`
       );
 
-      // Optional: Reload data for complete refresh
       setTimeout(() => {
         loadAccountabilityData();
       }, 1500);
     } catch (error) {
       console.error("❌ Error returning equipment:", error);
       toast.error(`Failed to return equipment: ${error.message}`);
-    }
-  };
-
-  // Add this helper function to recalculate accountability summary
-  const recalculateAccountabilitySummary = async (
-    personnelId,
-    clearanceRequestId = null
-  ) => {
-    try {
-      // Get all unsettled accountability records for this personnel
-      const { data: records, error } = await supabase
-        .from("accountability_records")
-        .select(
-          `
-        id,
-        amount_due,
-        record_type,
-        is_settled,
-        equipment_returned,
-        inventory:inventory_id(item_name, current_value)
-      `
-        )
-        .eq("personnel_id", personnelId)
-        .eq("is_settled", false)
-        .in("record_type", ["LOST", "DAMAGED"]);
-
-      if (error) throw error;
-
-      let total_outstanding_amount = 0;
-      let lost_equipment_count = 0;
-      let damaged_equipment_count = 0;
-      let lost_equipment_value = 0;
-      let damaged_equipment_value = 0;
-
-      records?.forEach((record) => {
-        // Skip returned equipment
-        if (record.equipment_returned) return;
-
-        const amount =
-          record.amount_due || record.inventory?.current_value || 0;
-        total_outstanding_amount += amount;
-
-        if (record.record_type === "LOST") {
-          lost_equipment_count++;
-          lost_equipment_value += amount;
-        } else if (record.record_type === "DAMAGED") {
-          damaged_equipment_count++;
-          damaged_equipment_value += amount;
-        }
-      });
-
-      // Update summary table
-      const updateData = {
-        total_outstanding_amount: total_outstanding_amount,
-        lost_equipment_count: lost_equipment_count,
-        damaged_equipment_count: damaged_equipment_count,
-        lost_equipment_value: lost_equipment_value,
-        damaged_equipment_value: damaged_equipment_value,
-        accountability_status:
-          total_outstanding_amount > 0 ? "UNSETTLED" : "SETTLED",
-        updated_at: new Date().toISOString(),
-      };
-
-      let query = supabase
-        .from("personnel_equipment_accountability_table")
-        .update(updateData)
-        .eq("personnel_id", personnelId);
-
-      if (clearanceRequestId) {
-        query = query.eq("clearance_request_id", clearanceRequestId);
-      } else {
-        query = query.is("clearance_request_id", null);
-      }
-
-      const { error: updateError } = await query;
-      if (updateError) throw updateError;
-    } catch (error) {
-      console.error("Error recalculating accountability summary:", error);
-      throw error;
     }
   };
 
@@ -1333,10 +1156,13 @@ const loadAccountabilityData = async () => {
             return {
               ...r,
               status: "Settled",
+              is_settled: true,
               missingEquipment: r.missingEquipment.map((eq) => ({
                 ...eq,
                 is_settled: true,
                 status: eq.status === "RETURNED" ? eq.status : "RETURNED",
+                settlement_method: "Equipment Returned",
+                settlement_date: new Date().toISOString().split("T")[0],
               })),
               totalMissingAmount: 0,
             };
@@ -1393,9 +1219,32 @@ const loadAccountabilityData = async () => {
       <InspectorSidebar />
       <Hamburger />
       <div className={`main-content ${isSidebarCollapsed ? "collapsed" : ""}`}>
-        <h1>Personnel Equipment Accountability</h1>
+        {/* Page Header with Tabs */}
+        <div className={styles.pageHeader}>
+          <h1>Personnel Equipment Accountability</h1>
 
-        {/* Top Controls - Matching inspectorinventorycontrol */}
+          {/* Tab Navigation */}
+          <div className={styles.tabNavigation}>
+            <button
+              className={`${styles.tabBtn} ${
+                activeTab === "unsettled" ? styles.activeTab : ""
+              }`}
+              onClick={() => setActiveTab("unsettled")}
+            >
+              🔴 Unsettled Accountability
+            </button>
+            <button
+              className={`${styles.tabBtn} ${
+                activeTab === "settled" ? styles.activeTab : ""
+              }`}
+              onClick={() => setActiveTab("settled")}
+            >
+              ✅ Settled Accountability
+            </button>
+          </div>
+        </div>
+
+        {/* Top Controls */}
         <div className={styles.IIRTopControls}>
           <div className={styles.IIRTableHeader}>
             <select
@@ -1422,20 +1271,6 @@ const loadAccountabilityData = async () => {
                 ))}
             </select>
 
-            <select
-              className={styles.IIRFilterStatus}
-              value={filterStatus}
-              onChange={(e) => {
-                setFilterStatus(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="All">All Status</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Settled">Settled</option>
-              <option value="In Progress">In Progress</option>
-            </select>
-
             <input
               type="text"
               className={styles.IIRSearchBar}
@@ -1449,7 +1284,7 @@ const loadAccountabilityData = async () => {
           </div>
         </div>
 
-        {/* Summary Cards - Matching inspectorinventorycontrol */}
+        {/* Summary Cards */}
         <div className={styles.IIRSummary}>
           <button
             className={`${styles.IIRSummaryCard} ${styles.IIRTotal} ${
@@ -1479,14 +1314,19 @@ const loadAccountabilityData = async () => {
             <p>{stats.settled}</p>
           </button>
           <button className={`${styles.IIRSummaryCard} ${styles.IIRValue}`}>
-            <h3>Total Value</h3>
+            <h3>Total Outstanding</h3>
             <p>{formatCurrency(stats.totalMissingAmount)}</p>
           </button>
         </div>
 
-        {/* Table Header Section - Matching inspectorinventorycontrol */}
+        {/* Table Header Section */}
         <div className={styles.IIRTableHeaderSection}>
-          <h2 className={styles.IIRSHeaders}>Accountability Records</h2>
+          <h2 className={styles.IIRSHeaders}>
+            {activeTab === "unsettled"
+              ? "Unsettled Accountability"
+              : "Settled Accountability"}{" "}
+            Records
+          </h2>
           <div className={styles.combinedInfoHeader}>
             <span className={styles.routineIndicator}>
               🔵 Routine Inspection
@@ -1506,7 +1346,7 @@ const loadAccountabilityData = async () => {
           {renderPaginationButtons()}
         </div>
 
-        {/* Scrollable Table Container - Matching inspectorinventorycontrol */}
+        {/* Scrollable Table Container */}
         <div className={styles.IIRTableScrollContainer}>
           <table className={styles.IIRTable}>
             <thead>
@@ -1530,7 +1370,9 @@ const loadAccountabilityData = async () => {
                     style={{ textAlign: "center", padding: "40px" }}
                   >
                     <div style={{ fontSize: "48px", marginBottom: "16px" }}>
-                      <span className={styles.IIRAnimatedEmoji}>🔍</span>
+                      <span className={styles.IIRAnimatedEmoji}>
+                        {activeTab === "unsettled" ? "✅" : "📊"}
+                      </span>
                     </div>
                     <h3
                       style={{
@@ -1540,10 +1382,14 @@ const loadAccountabilityData = async () => {
                         marginBottom: "8px",
                       }}
                     >
-                      No Accountability Records Found
+                      {activeTab === "unsettled"
+                        ? "No Unsettled Accountability Found"
+                        : "No Settled Accountability Found"}
                     </h3>
                     <p style={{ fontSize: "14px", color: "#999" }}>
-                      No personnel with accountability issues available
+                      {activeTab === "unsettled"
+                        ? "All personnel are settled with their equipment accountability."
+                        : "No settlement records available yet."}
                     </p>
                   </td>
                 </tr>
@@ -1559,8 +1405,8 @@ const loadAccountabilityData = async () => {
                   return (
                     <tr key={report.id || report.personnel_id}>
                       <td>
-                        <div className={styles.rankCell}> 
-                             {report.rank || "N/A"}
+                        <div className={styles.rankCell}>
+                          {report.rank || "N/A"}
                           {report.rank_image ? (
                             <img
                               src={report.rank_image}
@@ -1579,9 +1425,7 @@ const loadAccountabilityData = async () => {
                                 ? styles.rankTextWithImage
                                 : styles.rankText
                             }
-                          >
-                        
-                          </span>
+                          ></span>
                         </div>
                       </td>
                       <td>
@@ -1590,12 +1434,13 @@ const loadAccountabilityData = async () => {
                             <strong className={styles.personnelFullName}>
                               {report.formattedName}
                             </strong>
+                            {report.badge_number && (
+                              <div className={styles.IIRBadgeNumber}>
+                                Badge: {report.badge_number}
+                              </div>
+                            )}
                           </div>
-                          {report.badge_number && (
-                            <div className={styles.IIRBadgeNumber}>
-                              Badge: {report.badge_number}
-                            </div>
-                          )}
+
                           {report.hasCombinedAccountability && (
                             <div className={styles.combinedAccountabilityBadge}>
                               ⚡ Combined Accountability
@@ -1610,6 +1455,24 @@ const loadAccountabilityData = async () => {
                             <span className={styles.multipleTypesBadge}>
                               ({report.clearanceTypeCount} types)
                             </span>
+                          )}
+                          {report.clearanceRequestCount > 1 && (
+                            <span className={styles.multipleRequestsBadge}>
+                              🔢 {report.clearanceRequestCount} requests
+                            </span>
+                          )}
+                          {report.hasMultipleClearances && (
+                            <div className={styles.multipleClearanceTooltip}>
+                              <div className={styles.tooltipTitle}>
+                                Multiple Clearance Requests:
+                              </div>
+                              {report.clearanceRequestIds.map((id, idx) => (
+                                <div key={idx} className={styles.tooltipItem}>
+                                  Request #{idx + 1}:{" "}
+                                  {report.clearanceTypes[idx] || "Unknown"}
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                         {report.hasCombinedAccountability && (
@@ -1631,6 +1494,11 @@ const loadAccountabilityData = async () => {
                           } ${getStatusBadgeClass(report.status)}`}
                         >
                           {report.status}
+                          {report.settlement_date && (
+                            <div className={styles.settlementDate}>
+                              {formatDate(report.settlement_date)}
+                            </div>
+                          )}
                         </span>
                       </td>
                       <td>
@@ -1708,8 +1576,8 @@ const loadAccountabilityData = async () => {
                               onClick={() => approveSettlement(report)}
                             >
                               {report.hasCombinedAccountability
-                                ? "Settle All"
-                                : "Approve"}
+                                ? "⚡ Settle All"
+                                : "✅ Approve"}
                             </button>
                           )}
                         </div>
@@ -1731,23 +1599,25 @@ const loadAccountabilityData = async () => {
         {/* Summary Footer */}
         <div className={styles.IIRTableFooter}>
           <div className={styles.IIRResultsInfo}>
-            Showing {failedInspections.length} personnel with accountability
-            issues
-            {stats.unsettled > 0 && (
+            Showing {accountabilityReports.length} personnel with{" "}
+            {activeTab === "unsettled" ? "unsettled" : "settled"} accountability
+            {stats.unsettled > 0 && activeTab === "unsettled" && (
               <span className={styles.combinedCount}>
                 ({stats.unsettled} with combined accountability)
               </span>
             )}
           </div>
-          <div className={styles.IIRTotalMissing}>
-            <strong>Total Outstanding Value:</strong>{" "}
-            {formatCurrency(
-              failedInspections.reduce(
-                (sum, report) => sum + report.totalMissingAmount,
-                0
-              )
-            )}
-          </div>
+          {activeTab === "unsettled" && (
+            <div className={styles.IIRTotalMissing}>
+              <strong>Total Outstanding Value:</strong>{" "}
+              {formatCurrency(
+                accountabilityReports.reduce(
+                  (sum, report) => sum + report.totalMissingAmount,
+                  0
+                )
+              )}
+            </div>
+          )}
         </div>
 
         {/* Missing Equipment Modal */}
@@ -1794,9 +1664,31 @@ const loadAccountabilityData = async () => {
                             ({selectedPersonnel.clearanceTypeCount} types)
                           </span>
                         )}
+                        {selectedPersonnel.clearanceRequestCount > 1 && (
+                          <span className={styles.multipleRequestsBadge}>
+                            🔢 {selectedPersonnel.clearanceRequestCount}{" "}
+                            requests
+                          </span>
+                        )}
+                        {selectedPersonnel.hasMultipleClearances && (
+                          <div className={styles.multipleClearanceTooltip}>
+                            <div className={styles.tooltipTitle}>
+                              Multiple Clearance Requests:
+                            </div>
+                            {selectedPersonnel.clearanceRequestIds.map(
+                              (id, idx) => (
+                                <div key={idx} className={styles.tooltipItem}>
+                                  Request #{idx + 1}:{" "}
+                                  {selectedPersonnel.clearanceTypes[idx] ||
+                                    "Unknown"}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
                       </div>
                       {selectedPersonnel.clearanceTypes &&
-                        selectedPersonnel.clearanceTypes.length > 1 && (
+                        selectedPersonnel.clearanceTypes.length > 0 && (
                           <div className={styles.clearanceTypesList}>
                             {selectedPersonnel.clearanceTypes.map(
                               (type, index) => (
@@ -1819,6 +1711,12 @@ const loadAccountabilityData = async () => {
                         } ${getStatusBadgeClass(selectedPersonnel.status)}`}
                       >
                         {selectedPersonnel.status}
+                        {selectedPersonnel.settlement_date && (
+                          <div className={styles.settlementDate}>
+                            Settled:{" "}
+                            {formatDate(selectedPersonnel.settlement_date)}
+                          </div>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -1844,9 +1742,9 @@ const loadAccountabilityData = async () => {
                               <th>Status</th>
                               <th>Value</th>
                               <th>Inspection Date</th>
+                              <th>Actions</th>
                             </tr>
                           </thead>
-                          {/* In the routine equipment section table body */}
                           <tbody>
                             {missingEquipmentList.routine.map(
                               (equipment, index) => (
@@ -1915,7 +1813,7 @@ const loadAccountabilityData = async () => {
                                   )}
                                 </strong>
                               </td>
-                              <td></td>
+                              <td colSpan="2"></td>
                             </tr>
                           </tfoot>
                         </table>
@@ -1943,6 +1841,7 @@ const loadAccountabilityData = async () => {
                               <th>Status</th>
                               <th>Value</th>
                               <th>Inspection Date</th>
+                              <th>Clearance Type</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1969,6 +1868,7 @@ const loadAccountabilityData = async () => {
                                   <td>
                                     {formatDate(equipment.last_inspection_date)}
                                   </td>
+                                  <td>{equipment.clearance_type || "N/A"}</td>
                                 </tr>
                               )
                             )}
@@ -1988,7 +1888,7 @@ const loadAccountabilityData = async () => {
                                   )}
                                 </strong>
                               </td>
-                              <td></td>
+                              <td colSpan="2"></td>
                             </tr>
                           </tfoot>
                         </table>
@@ -2029,6 +1929,15 @@ const loadAccountabilityData = async () => {
                         {formatCurrency(selectedPersonnel.totalMissingAmount)}
                       </span>
                     </div>
+                    {selectedPersonnel.is_settled && (
+                      <div className={styles.IIRViewModalField}>
+                        <label>Settlement Method:</label>
+                        <span>
+                          {selectedPersonnel.settlement_method ||
+                            "Cash Payment"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2041,38 +1950,127 @@ const loadAccountabilityData = async () => {
                   Close
                 </button>
 
-                {/* Add Return All button */}
                 {selectedPersonnel.status === "Unsettled" && (
-                  <button
-                    className={styles.returnAllBtn}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Return ALL equipment for ${selectedPersonnel.personnelName}?`
-                        )
-                      ) {
-                        handleReturnAllEquipment(selectedPersonnel);
+                  <>
+                    <button
+                      className={styles.returnAllBtn}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Return ALL equipment for ${selectedPersonnel.personnelName}?`
+                          )
+                        ) {
+                          handleReturnAllEquipment(selectedPersonnel);
+                          setShowMissingModal(false);
+                        }
+                      }}
+                    >
+                      ↩️ Return All
+                    </button>
+                    <button
+                      className={styles.IIRApproveBtn}
+                      onClick={() => {
                         setShowMissingModal(false);
-                      }
-                    }}
-                  >
-                    ↩️ Return All
-                  </button>
+                        approveSettlement(selectedPersonnel);
+                      }}
+                    >
+                      {selectedPersonnel.hasCombinedAccountability
+                        ? "⚡ Settle All Accountability"
+                        : "✅ Approve"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Approve Settlement Modal */}
+        {showApproveModal && (
+          <div className={styles.IIRViewModalOverlay}>
+            <div
+              className={styles.IIRViewModalContent}
+              style={{ maxWidth: "500px" }}
+            >
+              <div className={styles.IIRViewModalHeader}>
+                <h3 className={styles.IIRViewModalTitle}>
+                  {approveModalDetails.title}
+                </h3>
+                <button
+                  className={styles.IIRViewModalCloseBtn}
+                  onClick={() => {
+                    setShowApproveModal(false);
+                    setSelectedReportToApprove(null);
+                  }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className={styles.IIRViewModalBody}>
+                <div className={styles.approveModalIcon}>
+                  {approveModalDetails.hasCombinedAccountability ? (
+                    <div className={styles.combinedModalIcon}>⚡</div>
+                  ) : (
+                    <div className={styles.approveModalIcon}>✅</div>
+                  )}
+                </div>
+
+                <div
+                  className={styles.approveModalMessage}
+                  dangerouslySetInnerHTML={{
+                    __html: approveModalDetails.message,
+                  }}
+                />
+
+                {approveModalDetails.hasCombinedAccountability && (
+                  <div className={styles.approveModalBreakdown}>
+                    <div className={styles.breakdownItem}>
+                      <span className={styles.routineDot}>🔵</span>
+                      <span>Routine Inspection:</span>
+                      <strong>
+                        {formatCurrency(approveModalDetails.routineAmount)}
+                      </strong>
+                    </div>
+                    <div className={styles.breakdownItem}>
+                      <span className={styles.clearanceDot}>🟣</span>
+                      <span>Clearance Request:</span>
+                      <strong>
+                        {formatCurrency(approveModalDetails.clearanceAmount)}
+                      </strong>
+                    </div>
+                    <div className={styles.breakdownTotal}>
+                      <span className={styles.combinedDot}>⚡</span>
+                      <span>Total Amount:</span>
+                      <strong style={{ color: "#dc3545" }}>
+                        {formatCurrency(approveModalDetails.totalAmount)}
+                      </strong>
+                    </div>
+                  </div>
                 )}
 
-                {selectedPersonnel.status === "Unsettled" && (
-                  <button
-                    className={styles.IIRApproveBtn}
-                    onClick={() => {
-                      setShowMissingModal(false);
-                      approveSettlement(selectedPersonnel);
-                    }}
-                  >
-                    {selectedPersonnel.hasCombinedAccountability
-                      ? "Settle All"
-                      : "Approve Settlement"}
-                  </button>
-                )}
+                <div className={styles.approveModalWarning}>
+                  ⚠️ <strong>This action cannot be undone.</strong> Please
+                  verify the details before proceeding.
+                </div>
+              </div>
+
+              <div className={styles.IIRViewModalActions}>
+                <button
+                  className={styles.IIRCancelBtn}
+                  onClick={() => {
+                    setShowApproveModal(false);
+                    setSelectedReportToApprove(null);
+                  }}
+                >
+                  ❌ Cancel
+                </button>
+                <button
+                  className={styles.IIRConfirmBtn}
+                  onClick={handleConfirmApproval}
+                >
+                  ✅ Confirm Approval
+                </button>
               </div>
             </div>
           </div>
@@ -2122,14 +2120,57 @@ const loadAccountabilityData = async () => {
                     </div>
                     <div className={styles.IIRViewModalField}>
                       <label>Clearance Type:</label>
-                      <span>{selectedReport.clearanceType}</span>
+                      <div className={styles.clearanceTypesDisplay}>
+                        <span>{selectedReport.clearanceType}</span>
+                        {selectedReport.clearanceTypeCount > 1 && (
+                          <span className={styles.multipleTypesBadge}>
+                            ({selectedReport.clearanceTypeCount} types)
+                          </span>
+                        )}
+                        {selectedReport.clearanceRequestCount > 1 && (
+                          <span className={styles.multipleRequestsBadge}>
+                            🔢 {selectedReport.clearanceRequestCount} requests
+                          </span>
+                        )}
+                        {selectedReport.hasMultipleClearances && (
+                          <div className={styles.multipleClearanceTooltip}>
+                            <div className={styles.tooltipTitle}>
+                              Multiple Clearance Requests:
+                            </div>
+                            {selectedReport.clearanceRequestIds.map(
+                              (id, idx) => (
+                                <div key={idx} className={styles.tooltipItem}>
+                                  Request #{idx + 1}:{" "}
+                                  {selectedReport.clearanceTypes[idx] ||
+                                    "Unknown"}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {selectedReport.clearanceTypes &&
+                        selectedReport.clearanceTypes.length > 0 && (
+                          <div className={styles.clearanceTypesList}>
+                            {selectedReport.clearanceTypes.map(
+                              (type, index) => (
+                                <span
+                                  key={index}
+                                  className={styles.clearanceTypeTag}
+                                >
+                                  {type}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
 
                 <div className={styles.IIRViewModalSection}>
                   <h4 className={styles.IIRViewModalSectionTitle}>
-                    Clearance Information
+                    Account Information
                   </h4>
                   <div className={styles.IIRViewModalGrid}>
                     <div className={styles.IIRViewModalField}>
@@ -2150,6 +2191,20 @@ const loadAccountabilityData = async () => {
                       <label>Clearance Status:</label>
                       <span>{selectedReport.clearance_status || "N/A"}</span>
                     </div>
+                    {selectedReport.settlement_date && (
+                      <div className={styles.IIRViewModalField}>
+                        <label>Settlement Date:</label>
+                        <span>
+                          {formatDate(selectedReport.settlement_date)}
+                        </span>
+                      </div>
+                    )}
+                    {selectedReport.settlement_method && (
+                      <div className={styles.IIRViewModalField}>
+                        <label>Settlement Method:</label>
+                        <span>{selectedReport.settlement_method}</span>
+                      </div>
+                    )}
                     {selectedReport.hasCombinedAccountability && (
                       <div className={styles.IIRViewModalField}>
                         <label>Accountability Type:</label>
@@ -2200,25 +2255,6 @@ const loadAccountabilityData = async () => {
                           </span>
                         </div>
                       )}
-                      \
-                      {selectedReport.clearanceTypes &&
-                        selectedReport.clearanceTypes.length > 1 && (
-                          <div className={styles.IIRViewModalField}>
-                            <label>Clearance Types:</label>
-                            <div className={styles.clearanceTypesList}>
-                              {selectedReport.clearanceTypes.map(
-                                (type, index) => (
-                                  <span
-                                    key={index}
-                                    className={styles.clearanceTypeTag}
-                                  >
-                                    {type}
-                                  </span>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
                       <div className={styles.IIRViewModalField}>
                         <label>Total Value:</label>
                         <span style={{ color: "#dc3545", fontWeight: "bold" }}>

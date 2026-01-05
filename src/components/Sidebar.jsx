@@ -1,4 +1,4 @@
-// hooks/Sidebar.jsx - Updated for tooltip approach
+// hooks/Sidebar.jsx - Updated to show tooltips in both states
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useSidebar } from "./SidebarContext";
@@ -11,6 +11,51 @@ const Sidebar = () => {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const location = useLocation();
   const [hoverTimeout, setHoverTimeout] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  // Add this to your hamburger menu click handler
+  const hamburger = document.querySelector(".hamburger");
+  const sidebar = document.querySelector(".sidebar");
+  const mainContent = document.querySelector(".main-content");
+
+  if (hamburger) {
+    hamburger.addEventListener("click", function () {
+      this.classList.toggle("active");
+      sidebar.classList.toggle("active");
+
+      // Optional: Prevent body scroll when sidebar is open on mobile
+      if (window.innerWidth <= 768) {
+        document.body.style.overflow = sidebar.classList.contains("active")
+          ? "hidden"
+          : "";
+      }
+    });
+  }
+
+  // Close sidebar when clicking outside on mobile
+  if (sidebar) {
+    document.addEventListener("click", function (event) {
+      if (
+        window.innerWidth <= 768 &&
+        sidebar.classList.contains("active") &&
+        !sidebar.contains(event.target) &&
+        !hamburger.contains(event.target)
+      ) {
+        sidebar.classList.remove("active");
+        hamburger.classList.remove("active");
+        document.body.style.overflow = "";
+      }
+    });
+  }
+
+  // Handle window resize
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 768) {
+      // Reset mobile styles when above mobile breakpoint
+      sidebar.classList.remove("active");
+      if (hamburger) hamburger.classList.remove("active");
+      document.body.style.overflow = "";
+    }
+  });
   const dropdownSections = [
     {
       id: "personnel",
@@ -52,10 +97,10 @@ const Sidebar = () => {
         {
           href: "/recruitmentPersonnel",
           icon: "👥",
-          text: "Recruited Personnel",
+          text: "Recruited Applicants",
         },
         { href: "/trainings", icon: "🎓", text: "Trainings" },
-        { href: "/placement", icon: "📍", text: "Placement (≥ 2 Years)" },
+        { href: "/placement", icon: "📍", text: "Personnel Designation" },
         { href: "/history", icon: "⏳", text: "History" },
       ],
     },
@@ -67,21 +112,32 @@ const Sidebar = () => {
   }, [location.pathname]);
 
   const handleDropdownHover = (section, e) => {
+    // Always show tooltip when hovering dropdown section (both collapsed and expanded)
+    const rect = e.currentTarget.getBoundingClientRect();
+
     if (isSidebarCollapsed) {
-      const rect = e.currentTarget.getBoundingClientRect();
+      // Position for collapsed sidebar
       setTooltipPosition({
         x: rect.right + 10,
         y: rect.top,
       });
-      setTooltipContent(section);
+    } else {
+      // Position for expanded sidebar - tooltip appears to the right
+      setTooltipPosition({
+        x: rect.right + 10,
+        y: rect.top,
+      });
+    }
 
-      // Clear any existing timeout
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-        setHoverTimeout(null);
-      }
+    setTooltipContent(section);
+
+    // Clear any existing timeout
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
     }
   };
+
   const handleTooltipEnter = () => {
     // Clear the hide timeout when entering the tooltip
     if (hoverTimeout) {
@@ -89,6 +145,7 @@ const Sidebar = () => {
       setHoverTimeout(null);
     }
   };
+
   const handleTooltipLeave = () => {
     // Hide tooltip after a short delay
     const timeout = setTimeout(() => {
@@ -96,6 +153,7 @@ const Sidebar = () => {
     }, 150);
     setHoverTimeout(timeout);
   };
+
   const handleDropdownLeave = (e) => {
     // Only hide if not hovering over the tooltip itself
     if (!e.relatedTarget || !e.relatedTarget.closest(".dropdown-tooltip")) {
@@ -122,37 +180,9 @@ const Sidebar = () => {
       expandSidebar();
     }
   };
-  // Add click handler for mobile overlay
-useEffect(() => {
-  const overlay = document.querySelector('.overlay');
-  const sidebar = document.querySelector('.sidebar');
-  const hamburger = document.querySelector('.hamburger');
-  
-  const closeSidebar = () => {
-    if (sidebar && !sidebar.classList.contains('collapsed')) {
-      sidebar.classList.add('collapsed');
-      // Update your sidebar context state here
-    }
-  };
-  
-  if (overlay) {
-    overlay.addEventListener('click', closeSidebar);
-  }
-  
-  return () => {
-    if (overlay) {
-      overlay.removeEventListener('click', closeSidebar);
-    }
-  };
-}, []);
 
   return (
     <div className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-      {/*   <div className="theme-toggle">
-        <button onClick={toggleTheme}>
-          {currentTheme === "light" ? "🌙" : "☀️"}
-        </button>
-      </div>*/}
       <div className="sidebar-inner">
         <h2>Admin</h2>
         <a
@@ -167,7 +197,7 @@ useEffect(() => {
           onClick={(e) => handleTabClick(e, "/admin")}
         >
           <img
-            src="/src/assets/logo-bfp.jpg"
+            src="/src/assets/background.png"
             alt="Logo"
             style={{
               height: "30px",
@@ -177,7 +207,7 @@ useEffect(() => {
               marginRight: "10px",
             }}
           />
-          <span style={{ fontWeight: "800" }}>Villanueva FireStation</span>
+          <span style={{ fontWeight: "800" }}>Villanueva Fire Station</span>
         </a>
         <a
           href="/admin"
@@ -221,6 +251,7 @@ useEffect(() => {
         >
           🕓 <span>Personnel Recent Activity</span>
         </a>
+
         {/* Dropdown sections - simplified */}
         {dropdownSections.map((section) => (
           <div
@@ -233,21 +264,6 @@ useEffect(() => {
               {section.icon} <span>{section.title}</span>{" "}
               <span className="arrow">▼</span>
             </div>
-
-            {/* Only show dropdown content when expanded */}
-            {!isSidebarCollapsed && (
-              <div className="dropdown-content">
-                {section.items.map((item, index) => (
-                  <a
-                    key={index}
-                    href={item.href}
-                    className={isDropdownItemActive(item.href) ? "active" : ""}
-                  >
-                    {item.icon} <span>{item.text}</span>
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         ))}
 
@@ -255,38 +271,10 @@ useEffect(() => {
           🚪 <span>Logout</span>
         </a>
       </div>
-      {/*   {isSidebarCollapsed && tooltipContent && (
-        <div
-          className="dropdown-tooltip"
-          style={{
-            left: tooltipPosition.x,
-            top: tooltipPosition.y,
-          }}
-          onMouseEnter={handleTooltipEnter}
-          onMouseLeave={handleTooltipLeave}
-        >
-          <div className="tooltip-header">
-            <span>
-              {tooltipContent.icon} {tooltipContent.title}
-            </span>
-          </div>
-          <div className="tooltip-items">
-            {tooltipContent.items.map((item, index) => (
-              <a
-                key={index}
-                href={item.href}
-                className={isDropdownItemActive(item.href) ? "active" : ""}
-                onClick={() => handleTooltipItemClick(item.href)}
-              >
-                {item.icon} {item.text}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-      Tooltip for collapsed state */}
-
-      {isSidebarCollapsed && tooltipContent && (
+      {/* Tooltip for BOTH collapsed and expanded states */}
+      // hooks/Sidebar.jsx - Updated section
+      {/* Tooltip for BOTH collapsed and expanded states */}
+      {tooltipContent && (
         <div
           className={`dropdown-tooltip ${tooltipContent.id}-records`}
           style={{
@@ -306,7 +294,9 @@ useEffect(() => {
               <a
                 key={index}
                 href={item.href}
-                className={isDropdownItemActive(item.href) ? "active" : ""}
+                className={`tooltip-item ${
+                  isDropdownItemActive(item.href) ? "active" : ""
+                }`}
                 onClick={() => handleTooltipItemClick(item.href)}
               >
                 {item.icon} {item.text}
